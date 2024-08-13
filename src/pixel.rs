@@ -170,7 +170,7 @@ impl PixelAccess for Image {
             .index(&image_size)
             .ok_or(PixelError::InvalidLocation)? * pixel_size;
 
-        dbg!(start);
+        // dbg!(start);
         match format {
             // Rgba32Float => {
             //     let floats = align_to_mut::<u8, f32>(&mut self.data)?;

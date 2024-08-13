@@ -17,6 +17,7 @@ use bevy::{
 };
 
 use bevy_mod_scripting::prelude::*;
+use bevy_mod_scripting::lua::prelude::tealr::mlu::mlua::{UserDataMethods, UserDataFields, UserData, MetaMethod};
 use bevy_asset_loader::prelude::*;
 // use bevy_pixel_buffer::prelude::*;
 use crate::{screens, pixel::PixelAccess, assets::{self, ImageHandles}};
@@ -45,6 +46,9 @@ pub struct Nano9Sprite;
 pub struct Nano9Palette(Handle<Image>);
 
 #[derive(Resource)]
+pub struct Nano9SpriteSheet(pub Handle<Image>, pub Handle<TextureAtlasLayout>);
+
+#[derive(Resource)]
 pub struct Nano9Screen(Handle<Image>);
 
 #[derive(Resource, Default)]
@@ -54,6 +58,43 @@ pub struct DrawState {
     print_cursor: Vec2,
     // palette_modifications:
 }
+
+struct MySprite(Entity);
+
+impl UserData for MySprite {
+    fn add_fields<'lua, F: UserDataFields<'lua, Self>>(fields: &mut F) {
+        fields.add_field_method_get("x", |ctx, this| {
+            let world = ctx.get_world()?;
+            let mut world = world.write();
+            let mut system_state: SystemState<(Query<&Transform>)> = SystemState::new(&mut world);
+            let (transforms) = system_state.get(&mut world);
+            let transform = transforms.get(this.0).unwrap();
+            Ok(transform.translation.x)
+        });
+
+        fields.add_field_method_set("x", |ctx, this, value| {
+            let world = ctx.get_world()?;
+            let mut world = world.write();
+            let mut system_state: SystemState<(Query<&mut Transform>)> = SystemState::new(&mut world);
+            let (mut transforms) = system_state.get_mut(&mut world);
+            let mut transform = transforms.get_mut(this.0).unwrap();
+            transform.translation.x = value;
+            Ok(())
+        });
+    }
+
+    // fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
+    //     methods.add_method_mut("add", |_, this, value: i32| {
+    //         this.0 += value;
+    //         Ok(())
+    //     });
+
+    //     methods.add_meta_method(MetaMethod::Add, |_, this, value: i32| {
+    //         Ok(this.0 + value)
+    //     });
+    // }
+}
+
 
 impl APIProvider for Nano9API {
     type APITarget = Mutex<Lua>;
@@ -85,6 +126,39 @@ impl APIProvider for Nano9API {
                     let mut image = images.get_mut(&screen.0).unwrap();
                     let _ = image.set_pixel((x as usize, y as usize), color);
                     Ok(())
+                })
+                .map_err(ScriptError::new_other)?,
+            )
+            .map_err(ScriptError::new_other)?;
+
+        ctx.globals()
+            .set(
+                "spr",
+                // ctx.create_function(|ctx, (n, x, y): (usize, f32, f32)| {
+                ctx.create_function(|ctx, (n): (i32)| {
+                    let world = ctx.get_world()?;
+                    let mut world = world.write();
+                    let mut system_state: SystemState<(Res<Nano9SpriteSheet>)> = SystemState::new(&mut world);
+                    let (sprite_sheet) = system_state.get(&world);
+
+                    let bundle = (SpriteBundle {
+                        texture: sprite_sheet.0.clone(),
+                        sprite: Sprite {
+                            custom_size: Some(Vec2::new(
+                                24.0,
+                                24.0,
+                            )),
+                            ..default()
+                        },
+                        ..default()
+                    },
+                                 TextureAtlas {
+                                     layout: sprite_sheet.1.clone(),
+                                     index: n as usize
+                                 }
+                    );
+                    Ok(MySprite(world.spawn(bundle).id()))
+                    // Ok(())
                 })
                 .map_err(ScriptError::new_other)?,
             )
@@ -151,6 +225,7 @@ pub fn setup_image(
     commands.spawn(Camera2dBundle::default());
     commands
         .spawn(SpriteBundle {
+            transform: Transform::from_xyz(0.0, 0.0, -1.0),
             texture: handle,
             sprite: Sprite {
                 custom_size: Some(Vec2::new(
@@ -290,7 +365,11 @@ impl Plugin for Nano9Plugin {
                     ..default()
                 }),
                 ..default()
-            }))
+            })
+                         .set(
+                    ImagePlugin::default_nearest()
+                )
+            )
             .insert_resource(Time::<Fixed>::from_seconds(UPDATE_FREQUENCY.into()))
             .init_resource::<Settings>()
             // .add_plugins(LogDiagnosticsPlugin::default())
