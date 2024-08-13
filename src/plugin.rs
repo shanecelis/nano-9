@@ -18,8 +18,8 @@ use bevy::{
 
 use bevy_mod_scripting::prelude::*;
 use bevy_asset_loader::prelude::*;
-use bevy_pixel_buffer::prelude::*;
-use crate::{screens, assets::{self, ImageHandles}};
+// use bevy_pixel_buffer::prelude::*;
+use crate::{screens, pixel::PixelAccess, assets::{self, ImageHandles}};
 
 #[derive(AssetCollection, Resource)]
 struct ImageAssets {
@@ -43,6 +43,9 @@ pub struct Nano9Sprite;
 
 #[derive(Resource)]
 pub struct Nano9Palette(Handle<Image>);
+
+#[derive(Resource)]
+pub struct Nano9Screen(Handle<Image>);
 
 #[derive(Resource, Default)]
 pub struct DrawState {
@@ -70,26 +73,17 @@ impl APIProvider for Nano9API {
                 ctx.create_function(|ctx, (x, y, c): (f32, f32, Value)| {
                     let world = ctx.get_world()?;
                     let mut world = world.write();
-                    let mut system_state: SystemState<(Query<PixelBuffers>, Res<Nano9Palette>, ResMut<Assets<Image>>)> = SystemState::new(&mut world);
-                    let (pixel_buffers, palette, mut images) = system_state.get_mut(&mut world);
+                    let mut system_state: SystemState<(Res<Nano9Screen>, Res<Nano9Palette>, ResMut<Assets<Image>>)> = SystemState::new(&mut world);
+                    let (screen, palette, mut images) = system_state.get_mut(&mut world);
                     let color = match c {
                         Value::Integer(n) => {
-                            let pal = images.get_mut(&palette.0).unwrap();
-                            dbg!(&pal.texture_descriptor);
-                            // pal.data
-                            //
-                            let frame = pal.frame();
-                            // frame.get(UVec2::new(n as u32, 0));
-                            frame.raw()[n as usize]
+                            let pal = images.get(&palette.0).unwrap();
+                            pal.get_pixel(n as usize).unwrap()
                         }
                         _ => todo!()
                     };
-
-                    for item in pixel_buffers.iter() {
-                        images.frame(item).set((x as u32, y as u32), color);
-                    // let mut frame = query_pixel_buffer.frame();
-                    // frame.set((x as u32, y as u32), Pixel::RED);
-                    }
+                    let mut image = images.get_mut(&screen.0).unwrap();
+                    let _ = image.set_pixel((x as usize, y as usize), color);
                     Ok(())
                 })
                 .map_err(ScriptError::new_other)?,
@@ -100,9 +94,6 @@ impl APIProvider for Nano9API {
     }
 
     fn register_with_app(&self, app: &mut App) {
-        // this will register the `LuaProxyable` typedata since we derived it
-        // this will resolve retrievals of this component to our custom lua object
-        // app.register_type::<LifeState>();
         app.register_type::<Settings>();
     }
 }
@@ -119,7 +110,7 @@ impl Default for Settings {
     fn default() -> Self {
         Self {
             physical_grid_dimensions: (128, 128),
-            display_grid_dimensions: (0, 0),
+            display_grid_dimensions: (512, 512),
         }
     }
 }
@@ -131,19 +122,19 @@ pub fn setup_image(
     asset_server: Res<AssetServer>,
     settings: Res<Settings>,
 ) {
-    // let mut image = Image::new_fill(
-    //     Extent3d {
-    //         width: settings.physical_grid_dimensions.0,
-    //         height: settings.physical_grid_dimensions.1,
-    //         depth_or_array_layers: 1,
-    //     },
-    //     TextureDimension::D2,
-    //     &[0u8, 0u8, 0u8, 255u8],
-    //     TextureFormat::Rgba8Unorm,
-    //     RenderAssetUsages::RENDER_WORLD | RenderAssetUsages::MAIN_WORLD,
-    // );
+    let mut image = Image::new_fill(
+        Extent3d {
+            width: settings.physical_grid_dimensions.0,
+            height: settings.physical_grid_dimensions.1,
+            depth_or_array_layers: 1,
+        },
+        TextureDimension::D2,
+        &[0u8, 0u8, 0u8, 255u8],
+        TextureFormat::Rgba8UnormSrgb,
+        RenderAssetUsages::RENDER_WORLD | RenderAssetUsages::MAIN_WORLD,
+    );
 
-    // image.sampler = ImageSampler::nearest();
+    image.sampler = ImageSampler::nearest();
     // let handle = asset_server.load("images/pico-8-palette.png");
     // let mut image = assets.get(image_handles.get(ImageHandles::PICO8_PALETTE).unwrap())
     //                       .expect("image")
@@ -155,23 +146,23 @@ pub fn setup_image(
     commands.insert_resource(Nano9Palette(image_handles.get(ImageHandles::PICO8_PALETTE).unwrap().clone()));
 
     // let script_path = bevy_mod_scripting_lua::lua_path!("game_of_life");
-    // let handle = assets.add(image);
-    // commands.insert_resource(Nano9Image(handle.clone()));
-    // commands.spawn(Camera2dBundle::default());
-    // commands
-    //     .spawn(SpriteBundle {
-    //         texture: handle,
-    //         sprite: Sprite {
-    //             custom_size: Some(Vec2::new(
-    //                 settings.display_grid_dimensions.0 as f32,
-    //                 settings.display_grid_dimensions.1 as f32,
-    //             )),
-    //             color: Color::TOMATO,
-    //             ..Default::default()
-    //         },
-    //         ..Default::default()
-    //     })
-    //     .insert(Nano9Sprite);
+    let handle = assets.add(image);
+    commands.insert_resource(Nano9Screen(handle.clone()));
+    commands.spawn(Camera2dBundle::default());
+    commands
+        .spawn(SpriteBundle {
+            texture: handle,
+            sprite: Sprite {
+                custom_size: Some(Vec2::new(
+                    settings.display_grid_dimensions.0 as f32,
+                    settings.display_grid_dimensions.1 as f32,
+                )),
+                // color: Color::TOMATO,
+                ..Default::default()
+            },
+            ..Default::default()
+        })
+        .insert(Nano9Sprite);
         // .insert(LifeState {
         //     cells: vec![
         //         0u8;
@@ -304,7 +295,7 @@ impl Plugin for Nano9Plugin {
             .init_resource::<Settings>()
             // .add_plugins(LogDiagnosticsPlugin::default())
             // .add_plugins(FrameTimeDiagnosticsPlugin)
-            .add_plugins(PixelBufferPlugin)
+            // .add_plugins(PixelBufferPlugin)
             .add_plugins(ScriptingPlugin)
 
             .add_plugins((
@@ -314,16 +305,16 @@ impl Plugin for Nano9Plugin {
                 assets::plugin,
                 // audio::plugin,
             ))
-            .add_systems(
-                Startup,
-                PixelBufferBuilder::new()
-                    .with_size(PixelBufferSize {
-                        size: UVec2::new(128, 128),
-                        pixel_size: UVec2::new(4, 4)
-                    })
-                    // .with_fill(Fill::window())//.with_stretch(true)) // set fill to the window
-                    .setup(),
-            )
+            // .add_systems(
+            //     Startup,
+            //     PixelBufferBuilder::new()
+            //         .with_size(PixelBufferSize {
+            //             size: UVec2::new(128, 128),
+            //             pixel_size: UVec2::new(4, 4)
+            //         })
+            //         // .with_fill(Fill::window())//.with_stretch(true)) // set fill to the window
+            //         .setup(),
+            // )
             .add_systems(OnExit(screens::Screen::Loading), setup_image)
             .add_systems(OnEnter(screens::Screen::Playing), send_init)
             // .add_systems(Update, sync_window_size)
@@ -337,6 +328,6 @@ impl Plugin for Nano9Plugin {
     }
 }
 
-fn wild_update(mut pb: QueryPixelBuffer) {
-    pb.frame().per_pixel(|_, _| Pixel::random());
-}
+// fn wild_update(mut pb: QueryPixelBuffer) {
+//     pb.frame().per_pixel(|_, _| Pixel::random());
+// }

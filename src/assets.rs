@@ -52,63 +52,63 @@ impl FromWorld for ImageHandles {
     }
 }
 
-/// Stores the handles for background music, aka soundtracks.
-#[derive(Resource, Debug, Deref, DerefMut, Reflect)]
-#[reflect(Resource)]
-pub struct BgmHandles(HashMap<String, Handle<AudioSource>>);
+// /// Stores the handles for background music, aka soundtracks.
+// #[derive(Resource, Debug, Deref, DerefMut, Reflect)]
+// #[reflect(Resource)]
+// pub struct BgmHandles(HashMap<String, Handle<AudioSource>>);
 
-impl BgmHandles {
-    pub const PATH_CREDITS: &'static str = "audio/bgm/Monkeys Spinning Monkeys.ogg";
-    pub const PATH_GAMEPLAY: &'static str = "audio/bgm/Fluffing A Duck.ogg";
-}
+// impl BgmHandles {
+//     pub const PATH_CREDITS: &'static str = "audio/bgm/Monkeys Spinning Monkeys.ogg";
+//     pub const PATH_GAMEPLAY: &'static str = "audio/bgm/Fluffing A Duck.ogg";
+// }
 
-impl FromWorld for BgmHandles {
-    fn from_world(world: &mut World) -> Self {
-        let asset_server = world.resource::<AssetServer>();
+// impl FromWorld for BgmHandles {
+//     fn from_world(world: &mut World) -> Self {
+//         let asset_server = world.resource::<AssetServer>();
 
-        let paths = [Self::PATH_CREDITS, Self::PATH_GAMEPLAY];
-        let map = paths
-            .into_iter()
-            .map(|path| (path.to_string(), asset_server.load(path)))
-            .collect();
+//         let paths = [Self::PATH_CREDITS, Self::PATH_GAMEPLAY];
+//         let map = paths
+//             .into_iter()
+//             .map(|path| (path.to_string(), asset_server.load(path)))
+//             .collect();
 
-        Self(map)
-    }
-}
+//         Self(map)
+//     }
+// }
 
-/// The values stored here are a `Vec<Handle<AudioSource>>` because
-/// a single sound effect can have multiple variations.
-#[derive(Resource, Debug, Deref, DerefMut, Reflect)]
-#[reflect(Resource)]
-pub struct SfxHandles(HashMap<String, Vec<Handle<AudioSource>>>);
+// /// The values stored here are a `Vec<Handle<AudioSource>>` because
+// /// a single sound effect can have multiple variations.
+// #[derive(Resource, Debug, Deref, DerefMut, Reflect)]
+// #[reflect(Resource)]
+// pub struct SfxHandles(HashMap<String, Vec<Handle<AudioSource>>>);
 
-impl SfxHandles {
-    pub const PATH_BUTTON_HOVER: &'static str = "audio/sfx/button_hover.ogg";
-    pub const PATH_BUTTON_PRESS: &'static str = "audio/sfx/button_press.ogg";
-    pub const PATH_STEP: &'static str = "audio/sfx/step";
-}
+// impl SfxHandles {
+//     pub const PATH_BUTTON_HOVER: &'static str = "audio/sfx/button_hover.ogg";
+//     pub const PATH_BUTTON_PRESS: &'static str = "audio/sfx/button_press.ogg";
+//     pub const PATH_STEP: &'static str = "audio/sfx/step";
+// }
 
-impl FromWorld for SfxHandles {
-    fn from_world(world: &mut World) -> Self {
-        let asset_server = world.get_resource::<AssetServer>().unwrap();
+// impl FromWorld for SfxHandles {
+//     fn from_world(world: &mut World) -> Self {
+//         let asset_server = world.get_resource::<AssetServer>().unwrap();
 
-        let paths = [Self::PATH_BUTTON_HOVER, Self::PATH_BUTTON_PRESS];
-        let mut map: HashMap<_, _> = paths
-            .into_iter()
-            .map(|path| (path.to_string(), vec![asset_server.load(path)]))
-            .collect();
+//         let paths = [Self::PATH_BUTTON_HOVER, Self::PATH_BUTTON_PRESS];
+//         let mut map: HashMap<_, _> = paths
+//             .into_iter()
+//             .map(|path| (path.to_string(), vec![asset_server.load(path)]))
+//             .collect();
 
-        // Using string parsing to strip numbered suffixes + `AssetServer::load_folder`
-        // is a good way to load many sound effects at once, but is not supported on
-        // Wasm or Android.
-        const STEP_VARIATIONS: u32 = 4;
-        let mut step_sfx = Vec::new();
-        for i in 1..=STEP_VARIATIONS {
-            let file = format!("{key}{i}.ogg", key = Self::PATH_STEP);
-            step_sfx.push(asset_server.load(file));
-        }
-        map.insert(Self::PATH_STEP.to_string(), step_sfx);
+//         // Using string parsing to strip numbered suffixes + `AssetServer::load_folder`
+//         // is a good way to load many sound effects at once, but is not supported on
+//         // Wasm or Android.
+//         const STEP_VARIATIONS: u32 = 4;
+//         let mut step_sfx = Vec::new();
+//         for i in 1..=STEP_VARIATIONS {
+//             let file = format!("{key}{i}.ogg", key = Self::PATH_STEP);
+//             step_sfx.push(asset_server.load(file));
+//         }
+//         map.insert(Self::PATH_STEP.to_string(), step_sfx);
 
-        Self(map)
-    }
-}
+//         Self(map)
+//     }
+// }

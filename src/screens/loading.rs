@@ -5,7 +5,7 @@ use bevy::{prelude::*, utils::HashMap};
 
 use super::Screen;
 use crate::{
-    assets::{BgmHandles, ImageHandles, SfxHandles},
+    assets::{ImageHandles},
 };
 
 pub(super) fn plugin(app: &mut App) {

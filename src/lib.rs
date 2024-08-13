@@ -1,11 +1,12 @@
 
 use bevy::{
     asset::AssetMetaCheck,
-    audio::{AudioPlugin, Volume},
+    // audio::{AudioPlugin, Volume},
     prelude::*,
 };
 use bevy::ecs::schedule::SystemSet;
 
+mod pixel;
 mod plugin;
 mod assets;
 pub mod screens;
