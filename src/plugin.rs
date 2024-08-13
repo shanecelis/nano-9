@@ -17,7 +17,17 @@ use bevy::{
 };
 
 use bevy_mod_scripting::prelude::*;
+use bevy_asset_loader::prelude::*;
 use bevy_pixel_buffer::prelude::*;
+use crate::{screens, assets::{self, ImageHandles}};
+
+#[derive(AssetCollection, Resource)]
+struct ImageAssets {
+  #[asset(path = "images/pico-8-palette.png")]
+  palette: Handle<Image>,
+  // #[asset(key = "tree")]
+  // tree: Handle<Image>,
+}
 
 // #[derive(Debug, Default, Clone, Reflect, Component, LuaProxy)]
 // #[reflect(Component, LuaProxyable)]
@@ -31,8 +41,8 @@ pub struct Nano9API;
 #[derive(Component)]
 pub struct Nano9Sprite;
 
-// #[derive(Resource)]
-// pub struct Nano9Image(Handle<Image>);
+#[derive(Resource)]
+pub struct Nano9Palette(Handle<Image>);
 
 #[derive(Resource, Default)]
 pub struct DrawState {
@@ -60,11 +70,26 @@ impl APIProvider for Nano9API {
                 ctx.create_function(|ctx, (x, y, c): (f32, f32, Value)| {
                     let world = ctx.get_world()?;
                     let mut world = world.write();
-                    let mut system_state: SystemState<QueryPixelBuffer> = SystemState::new(&mut world);
+                    let mut system_state: SystemState<(Query<PixelBuffers>, Res<Nano9Palette>, ResMut<Assets<Image>>)> = SystemState::new(&mut world);
+                    let (pixel_buffers, palette, mut images) = system_state.get_mut(&mut world);
+                    let color = match c {
+                        Value::Integer(n) => {
+                            let pal = images.get_mut(&palette.0).unwrap();
+                            dbg!(&pal.texture_descriptor);
+                            // pal.data
+                            //
+                            let frame = pal.frame();
+                            // frame.get(UVec2::new(n as u32, 0));
+                            frame.raw()[n as usize]
+                        }
+                        _ => todo!()
+                    };
 
-                    let mut query_pixel_buffer = system_state.get_mut(&mut world);
-                    let mut frame = query_pixel_buffer.frame();
-                    frame.set((x as u32, y as u32), Pixel::RED);
+                    for item in pixel_buffers.iter() {
+                        images.frame(item).set((x as u32, y as u32), color);
+                    // let mut frame = query_pixel_buffer.frame();
+                    // frame.set((x as u32, y as u32), Pixel::RED);
+                    }
                     Ok(())
                 })
                 .map_err(ScriptError::new_other)?,
@@ -101,26 +126,36 @@ impl Default for Settings {
 
 pub fn setup_image(
     mut commands: Commands,
+    image_handles: Res<ImageHandles>,
     mut assets: ResMut<Assets<Image>>,
     asset_server: Res<AssetServer>,
     settings: Res<Settings>,
 ) {
-    let mut image = Image::new_fill(
-        Extent3d {
-            width: settings.physical_grid_dimensions.0,
-            height: settings.physical_grid_dimensions.1,
-            depth_or_array_layers: 1,
-        },
-        TextureDimension::D2,
-        &[0u8, 0u8, 0u8, 255u8],
-        TextureFormat::Rgba8Unorm,
-        RenderAssetUsages::RENDER_WORLD | RenderAssetUsages::MAIN_WORLD,
-    );
+    // let mut image = Image::new_fill(
+    //     Extent3d {
+    //         width: settings.physical_grid_dimensions.0,
+    //         height: settings.physical_grid_dimensions.1,
+    //         depth_or_array_layers: 1,
+    //     },
+    //     TextureDimension::D2,
+    //     &[0u8, 0u8, 0u8, 255u8],
+    //     TextureFormat::Rgba8Unorm,
+    //     RenderAssetUsages::RENDER_WORLD | RenderAssetUsages::MAIN_WORLD,
+    // );
 
-    image.sampler = ImageSampler::nearest();
+    // image.sampler = ImageSampler::nearest();
+    // let handle = asset_server.load("images/pico-8-palette.png");
+    // let mut image = assets.get(image_handles.get(ImageHandles::PICO8_PALETTE).unwrap())
+    //                       .expect("image")
+    //                       .convert(Pixel::FORMAT)
+    //                       .expect("convert to pixel format");
+    // image.sampler = ImageSampler::nearest();
+
+    // commands.insert_resource(Nano9Palette(assets.add(image)));
+    commands.insert_resource(Nano9Palette(image_handles.get(ImageHandles::PICO8_PALETTE).unwrap().clone()));
 
     // let script_path = bevy_mod_scripting_lua::lua_path!("game_of_life");
-    let handle = assets.add(image);
+    // let handle = assets.add(image);
     // commands.insert_resource(Nano9Image(handle.clone()));
     // commands.spawn(Camera2dBundle::default());
     // commands
@@ -205,7 +240,7 @@ pub fn sync_window_size(
 // }
 
 /// Sends events allowing scripts to drive update logic
-pub fn send_on_update(mut events: PriorityEventWriter<LuaEvent<()>>) {
+pub fn send_update(mut events: PriorityEventWriter<LuaEvent<()>>) {
     events.send(
         LuaEvent {
             hook_name: "_update".to_owned(),
@@ -271,6 +306,14 @@ impl Plugin for Nano9Plugin {
             // .add_plugins(FrameTimeDiagnosticsPlugin)
             .add_plugins(PixelBufferPlugin)
             .add_plugins(ScriptingPlugin)
+
+            .add_plugins((
+                // demo::plugin,
+                screens::plugin,
+                // theme::plugin,
+                assets::plugin,
+                // audio::plugin,
+            ))
             .add_systems(
                 Startup,
                 PixelBufferBuilder::new()
@@ -281,13 +324,12 @@ impl Plugin for Nano9Plugin {
                     // .with_fill(Fill::window())//.with_stretch(true)) // set fill to the window
                     .setup(),
             )
-            .add_systems(Startup, setup_image)
-            .add_systems(Startup, send_init)
+            .add_systems(OnExit(screens::Screen::Loading), setup_image)
+            .add_systems(OnEnter(screens::Screen::Playing), send_init)
             // .add_systems(Update, sync_window_size)
             // .add_systems(Update, wild_update)
         // .add_systems(FixedUpdate, update_rendered_state.after(sync_window_size))
-            .add_systems(FixedUpdate, send_on_update)
-            .add_systems(FixedUpdate, send_draw.after(send_on_update))
+            .add_systems(FixedUpdate, (send_update, send_draw).chain().run_if(in_state(screens::Screen::Playing)))
             .add_systems(FixedUpdate, script_event_handler::<LuaScriptHost<()>, 0, 1>)
             .add_script_host::<LuaScriptHost<()>>(PostUpdate)
             .add_api_provider::<LuaScriptHost<()>>(Box::new(LuaCoreBevyAPIProvider))

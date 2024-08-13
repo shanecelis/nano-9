@@ -1,5 +1,5 @@
 x = 0
 function _draw()
-  pset(x, 0, 0)
+  pset(x, x, 8)
   x = x + 1
 end
