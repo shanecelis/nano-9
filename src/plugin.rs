@@ -75,7 +75,11 @@ pub struct DrawState {
 
 struct MySprite(Entity);
 
-
+// impl Drop for MySprite {
+//     fn drop(&mut self) {
+//         eprintln!("Blah");
+//     }
+// }
 
 impl UserData for MySprite {
     fn add_fields<'lua, F: UserDataFields<'lua, Self>>(fields: &mut F) {
@@ -88,7 +92,7 @@ impl UserData for MySprite {
             Ok(transform.translation.x)
         });
 
-        fields.add_field_method_set("x", |ctx, this, value| {
+        fields.add_field_method_set("x", |ctx, this, value: f32| {
             let world = ctx.get_world()?;
             let mut world = world.write();
             let mut system_state: SystemState<(Query<&mut Transform>)> = SystemState::new(&mut world);
@@ -98,36 +102,79 @@ impl UserData for MySprite {
             Ok(())
         });
 
-        fields.add_field_method_set("y", |ctx, this, value| {
+        fields.add_field_method_get("y", |ctx, this| {
             let world = ctx.get_world()?;
             let mut world = world.write();
             let mut system_state: SystemState<(Query<&mut Transform>)> = SystemState::new(&mut world);
             let (mut transforms) = system_state.get_mut(&mut world);
             let mut transform = transforms.get_mut(this.0).unwrap();
-            transform.translation.y = value;
+            Ok(-transform.translation.y)
+        });
+
+        fields.add_field_method_set("y", |ctx, this, value: f32| {
+            let world = ctx.get_world()?;
+            let mut world = world.write();
+            let mut system_state: SystemState<(Query<&mut Transform>)> = SystemState::new(&mut world);
+            let (mut transforms) = system_state.get_mut(&mut world);
+            let mut transform = transforms.get_mut(this.0).unwrap();
+            transform.translation.y = -value;
             Ok(())
         });
 
-        fields.add_field_method_set("c", |ctx, this, value| {
+        fields.add_field_method_set("color", |ctx, this, value| {
             let world = ctx.get_world()?;
             let mut world = world.write();
             let c = Nano9Palette::get_color(value, &mut world);
             let mut system_state: SystemState<(Query<&mut Sprite>)> = SystemState::new(&mut world);
-            let (mut sprite) = system_state.get_mut(&mut world);
+            let (mut query) = system_state.get_mut(&mut world);
+            let mut item = query.get_mut(this.0).unwrap();
+            item.color = c;
+            Ok(())
+        });
+
+        fields.add_field_method_set("flip_x", |ctx, this, value: bool| {
+            let world = ctx.get_world()?;
+            let mut world = world.write();
+            let mut system_state: SystemState<(Query<&mut Sprite>)> = SystemState::new(&mut world);
+            let (mut query) = system_state.get_mut(&mut world);
+            let mut item = query.get_mut(this.0).unwrap();
+            item.flip_x = value;
+            Ok(())
+        });
+
+        fields.add_field_method_set("flip_y", |ctx, this, value: bool| {
+            let world = ctx.get_world()?;
+            let mut world = world.write();
+            let mut system_state: SystemState<(Query<&mut Sprite>)> = SystemState::new(&mut world);
+            let (mut query) = system_state.get_mut(&mut world);
+            let mut item = query.get_mut(this.0).unwrap();
+            item.flip_y = value;
+            Ok(())
+        });
+
+        fields.add_field_method_set("index", |ctx, this, value| {
+            let world = ctx.get_world()?;
+            let mut world = world.write();
+            let mut system_state: SystemState<(Query<&mut TextureAtlas>)> = SystemState::new(&mut world);
+            let (mut query) = system_state.get_mut(&mut world);
+            let mut item = query.get_mut(this.0).unwrap();
+            item.index = value;
             Ok(())
         });
     }
 
-    // fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
-    //     methods.add_method_mut("add", |_, this, value: i32| {
-    //         this.0 += value;
-    //         Ok(())
-    //     });
+    fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
+        methods.add_method_mut("drop", |ctx, this, value: ()| {
+            let world = ctx.get_world()?;
+            let mut world = world.write();
+            world.despawn(this.0);
+            Ok(())
+        });
 
-    //     methods.add_meta_method(MetaMethod::Add, |_, this, value: i32| {
-    //         Ok(this.0 + value)
-    //     });
-    // }
+        // methods.add_meta_method(MetaMethod::Add, |_, this, value: i32| {
+        //     Ok(this.0 + value)
+        // });
+    }
 }
 
 
@@ -161,6 +208,28 @@ impl APIProvider for Nano9API {
                     let mut image = images.get_mut(&screen.0).unwrap();
                     let _ = image.set_pixel((x as usize, y as usize), color);
                     Ok(())
+                })
+                .map_err(ScriptError::new_other)?,
+            )
+            .map_err(ScriptError::new_other)?;
+
+        ctx.globals()
+            .set(
+                "btn",
+                ctx.create_function(|ctx, (b): (u8)| {
+                    let world = ctx.get_world()?;
+                    let mut world = world.write();
+                    let mut system_state: SystemState<(Res<ButtonInput<KeyCode>>)> = SystemState::new(&mut world);
+                    let (input) = system_state.get(&world);
+                    Ok(input.pressed(match b {
+                        0 => KeyCode::ArrowLeft,
+                        1 => KeyCode::ArrowRight,
+                        2 => KeyCode::ArrowUp,
+                        3 => KeyCode::ArrowDown,
+                        4 => KeyCode::KeyZ,
+                        5 => KeyCode::KeyX,
+                        x => todo!("key {x:?}"),
+                    }))
                 })
                 .map_err(ScriptError::new_other)?,
             )
