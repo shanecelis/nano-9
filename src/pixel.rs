@@ -78,6 +78,11 @@ pub trait PixelAccess {
         color: impl Into<Color>,
     ) -> Result<(), PixelError>;
 
+    fn set_pixels<F: FnMut(usize, usize) -> Color>(
+        &mut self,
+        f: F
+    ) -> Result<(), PixelError>;
+
     // fn from_pixels<C: Into<LinearRgba> + Copy>(colors: &[C], image_width_pixels: usize) -> Result<Self, PixelError> {
 }
 
@@ -152,6 +157,19 @@ impl PixelAccess for Image {
                 }
             }
         }
+    }
+
+    fn set_pixels<F: FnMut(usize, usize) -> Color>(
+        &mut self,
+        mut f: F
+    ) -> Result<(), PixelError> {
+        let image_size: Extent3d = self.texture_descriptor.size;
+        for i in 0..image_size.width as usize {
+            for j in 0..image_size.height as usize {
+                self.set_pixel((i,j), f(i,j))?;
+            }
+        }
+        Ok(())
     }
 
     fn set_pixel(

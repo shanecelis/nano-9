@@ -21,6 +21,7 @@ function _init()
     -- s:drop()
     -- s = nil
     t = 0
+    cls(1)
 end
 
 function _draw()

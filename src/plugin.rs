@@ -42,35 +42,14 @@ struct ImageAssets {
 //     pub cells: Vec<u8>,
 // }
 
-#[derive(Default)]
-pub struct Nano9API;
-
 #[derive(Component)]
 pub struct Nano9Sprite;
-
-#[derive(Resource)]
-pub struct Nano9Palette(Handle<Image>);
-
-impl Nano9Palette {
-    fn get_color(c: Value, world: &mut World) -> Color {
-        let mut system_state: SystemState<(Res<Nano9Palette>, Res<Assets<Image>>)> =
-            SystemState::new(world);
-        let (palette, images) = system_state.get(&world);
-        match c {
-            Value::Integer(n) => {
-                let pal = images.get(&palette.0).unwrap();
-                pal.get_pixel(n as usize).unwrap()
-            }
-            _ => todo!(),
-        }
-    }
-}
 
 #[derive(Resource)]
 pub struct Nano9SpriteSheet(pub Handle<Image>, pub Handle<TextureAtlasLayout>);
 
 #[derive(Resource)]
-pub struct Nano9Screen(Handle<Image>);
+pub struct Nano9Screen(pub Handle<Image>);
 
 #[derive(Resource, Default)]
 pub struct DrawState {
@@ -80,269 +59,7 @@ pub struct DrawState {
     // palette_modifications:
 }
 
-struct MySprite(Entity);
 
-// impl Drop for MySprite {
-//     fn drop(&mut self) {
-//         eprintln!("Blah");
-//     }
-// }
-
-impl UserData for MySprite {
-    fn add_fields<'lua, F: UserDataFields<'lua, Self>>(fields: &mut F) {
-        fields.add_field_method_get("x", |ctx, this| {
-            let world = ctx.get_world()?;
-            let mut world = world.write();
-            let mut system_state: SystemState<(Query<&Transform>)> = SystemState::new(&mut world);
-            let (transforms) = system_state.get(&mut world);
-            let transform = transforms.get(this.0).unwrap();
-            Ok(transform.translation.x)
-        });
-
-        fields.add_field_method_set("x", |ctx, this, value: f32| {
-            let world = ctx.get_world()?;
-            let mut world = world.write();
-            let mut system_state: SystemState<(Query<&mut Transform>)> =
-                SystemState::new(&mut world);
-            let (mut transforms) = system_state.get_mut(&mut world);
-            let mut transform = transforms.get_mut(this.0).unwrap();
-            transform.translation.x = value;
-            Ok(())
-        });
-
-        fields.add_field_method_get("y", |ctx, this| {
-            let world = ctx.get_world()?;
-            let mut world = world.write();
-            let mut system_state: SystemState<(Query<&mut Transform>)> =
-                SystemState::new(&mut world);
-            let (mut transforms) = system_state.get_mut(&mut world);
-            let mut transform = transforms.get_mut(this.0).unwrap();
-            Ok(-transform.translation.y)
-        });
-
-        fields.add_field_method_set("y", |ctx, this, value: f32| {
-            let world = ctx.get_world()?;
-            let mut world = world.write();
-            let mut system_state: SystemState<(Query<&mut Transform>)> =
-                SystemState::new(&mut world);
-            let (mut transforms) = system_state.get_mut(&mut world);
-            let mut transform = transforms.get_mut(this.0).unwrap();
-            transform.translation.y = -value;
-            Ok(())
-        });
-
-        fields.add_field_method_set("color", |ctx, this, value| {
-            let world = ctx.get_world()?;
-            let mut world = world.write();
-            let c = Nano9Palette::get_color(value, &mut world);
-            let mut system_state: SystemState<(Query<&mut Sprite>)> = SystemState::new(&mut world);
-            let (mut query) = system_state.get_mut(&mut world);
-            let mut item = query.get_mut(this.0).unwrap();
-            item.color = c;
-            Ok(())
-        });
-
-        fields.add_field_method_set("flip_x", |ctx, this, value: bool| {
-            let world = ctx.get_world()?;
-            let mut world = world.write();
-            let mut system_state: SystemState<(Query<&mut Sprite>)> = SystemState::new(&mut world);
-            let (mut query) = system_state.get_mut(&mut world);
-            let mut item = query.get_mut(this.0).unwrap();
-            item.flip_x = value;
-            Ok(())
-        });
-
-        fields.add_field_method_set("sx", |ctx, this, value: f32| {
-            let world = ctx.get_world()?;
-            let mut world = world.write();
-            let mut system_state: SystemState<(Query<&mut Sprite>)> = SystemState::new(&mut world);
-            let (mut query) = system_state.get_mut(&mut world);
-            let mut item = query.get_mut(this.0).unwrap();
-            item.custom_size.get_or_insert(Vec2::ONE).x = value;
-            Ok(())
-        });
-
-        fields.add_field_method_set("sy", |ctx, this, value: f32| {
-            let world = ctx.get_world()?;
-            let mut world = world.write();
-            let mut system_state: SystemState<(Query<&mut Sprite>)> = SystemState::new(&mut world);
-            let (mut query) = system_state.get_mut(&mut world);
-            let mut item = query.get_mut(this.0).unwrap();
-            item.custom_size.get_or_insert(Vec2::ONE).y = value;
-            Ok(())
-        });
-
-        fields.add_field_method_set("flip_y", |ctx, this, value: bool| {
-            let world = ctx.get_world()?;
-            let mut world = world.write();
-            let mut system_state: SystemState<(Query<&mut Sprite>)> = SystemState::new(&mut world);
-            let (mut query) = system_state.get_mut(&mut world);
-            let mut item = query.get_mut(this.0).unwrap();
-            item.flip_y = value;
-            Ok(())
-        });
-
-        fields.add_field_method_set("index", |ctx, this, value| {
-            let world = ctx.get_world()?;
-            let mut world = world.write();
-            let mut system_state: SystemState<(Query<&mut TextureAtlas>)> =
-                SystemState::new(&mut world);
-            let (mut query) = system_state.get_mut(&mut world);
-            let mut item = query.get_mut(this.0).unwrap();
-            item.index = value;
-            Ok(())
-        });
-    }
-
-    fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
-        methods.add_method_mut("drop", |ctx, this, value: ()| {
-            let world = ctx.get_world()?;
-            let mut world = world.write();
-            world.despawn(this.0);
-            Ok(())
-        });
-
-        // methods.add_meta_method(MetaMethod::Add, |_, this, value: i32| {
-        //     Ok(this.0 + value)
-        // });
-    }
-}
-
-impl APIProvider for Nano9API {
-    type APITarget = Mutex<Lua>;
-    type ScriptContext = Mutex<Lua>;
-    type DocTarget = LuaDocFragment;
-
-    fn attach_api(&mut self, ctx: &mut Self::APITarget) -> Result<(), ScriptError> {
-        // callbacks can receive any `ToLuaMulti` arguments, here '()' and
-        // return any `FromLuaMulti` arguments, here a `usize`
-        // check the Rlua documentation for more details
-
-        let ctx = ctx.get_mut().unwrap();
-
-        ctx.globals()
-            .set(
-                "pset",
-                ctx.create_function(|ctx, (x, y, c): (f32, f32, Value)| {
-                    let world = ctx.get_world()?;
-                    let mut world = world.write();
-                    let mut system_state: SystemState<(
-                        Res<Nano9Screen>,
-                        Res<Nano9Palette>,
-                        ResMut<Assets<Image>>,
-                    )> = SystemState::new(&mut world);
-                    let (screen, palette, mut images) = system_state.get_mut(&mut world);
-                    let color = match c {
-                        Value::Integer(n) => {
-                            let pal = images.get(&palette.0).unwrap();
-                            pal.get_pixel(n as usize).unwrap()
-                        }
-                        _ => todo!(),
-                    };
-                    let mut image = images.get_mut(&screen.0).unwrap();
-                    let _ = image.set_pixel((x as usize, y as usize), color);
-                    Ok(())
-                })
-                .map_err(ScriptError::new_other)?,
-            )
-            .map_err(ScriptError::new_other)?;
-
-        ctx.globals()
-            .set(
-                "time",
-                ctx.create_function(|ctx, _: ()| {
-                    let world = ctx.get_world()?;
-                    let mut world = world.write();
-                    let mut system_state: SystemState<(Res<Time>)> = SystemState::new(&mut world);
-                    let (time) = system_state.get(&world);
-                    Ok(time.elapsed_seconds())
-                })
-                .map_err(ScriptError::new_other)?,
-            )
-            .map_err(ScriptError::new_other)?;
-        ctx.globals()
-            .set(
-                "btn",
-                ctx.create_function(|ctx, (b): (u8)| {
-                    let world = ctx.get_world()?;
-                    let mut world = world.write();
-                    let mut system_state: SystemState<(Res<ButtonInput<KeyCode>>)> =
-                        SystemState::new(&mut world);
-                    let (input) = system_state.get(&world);
-                    Ok(input.pressed(match b {
-                        0 => KeyCode::ArrowLeft,
-                        1 => KeyCode::ArrowRight,
-                        2 => KeyCode::ArrowUp,
-                        3 => KeyCode::ArrowDown,
-                        4 => KeyCode::KeyZ,
-                        5 => KeyCode::KeyX,
-                        x => todo!("key {x:?}"),
-                    }))
-                })
-                .map_err(ScriptError::new_other)?,
-            )
-            .map_err(ScriptError::new_other)?;
-        ctx.globals()
-            .set(
-                "btnp",
-                ctx.create_function(|ctx, (b): (u8)| {
-                    let world = ctx.get_world()?;
-                    let mut world = world.write();
-                    let mut system_state: SystemState<(Res<ButtonInput<KeyCode>>)> =
-                        SystemState::new(&mut world);
-                    let (input) = system_state.get(&world);
-                    Ok(input.just_pressed(match b {
-                        0 => KeyCode::ArrowLeft,
-                        1 => KeyCode::ArrowRight,
-                        2 => KeyCode::ArrowUp,
-                        3 => KeyCode::ArrowDown,
-                        4 => KeyCode::KeyZ,
-                        5 => KeyCode::KeyX,
-                        x => todo!("key {x:?}"),
-                    }))
-                })
-                .map_err(ScriptError::new_other)?,
-            )
-            .map_err(ScriptError::new_other)?;
-        ctx.globals()
-            .set(
-                "spr",
-                // ctx.create_function(|ctx, (n, x, y): (usize, f32, f32)| {
-                ctx.create_function(|ctx, (n): (i32)| {
-                    let world = ctx.get_world()?;
-                    let mut world = world.write();
-                    let mut system_state: SystemState<(Res<Nano9SpriteSheet>)> =
-                        SystemState::new(&mut world);
-                    let (sprite_sheet) = system_state.get(&world);
-
-                    let bundle = (
-                        SpriteBundle {
-                            texture: sprite_sheet.0.clone(),
-                            sprite: Sprite {
-                                custom_size: Some(Vec2::new(24.0, 24.0)),
-                                ..default()
-                            },
-                            ..default()
-                        },
-                        TextureAtlas {
-                            layout: sprite_sheet.1.clone(),
-                            index: n as usize,
-                        },
-                    );
-                    Ok(MySprite(world.spawn(bundle).id()))
-                    // Ok(())
-                })
-                .map_err(ScriptError::new_other)?,
-            )
-            .map_err(ScriptError::new_other)?;
-
-        Ok(())
-    }
-
-    fn register_with_app(&self, app: &mut App) {
-        app.register_type::<Settings>();
-    }
-}
 
 #[derive(Reflect, Resource)]
 #[reflect(Resource)]
@@ -389,13 +106,6 @@ pub fn setup_image(
     // image.sampler = ImageSampler::nearest();
 
     // commands.insert_resource(Nano9Palette(assets.add(image)));
-    commands.insert_resource(Nano9Palette(
-        image_handles
-            .get(ImageHandles::PICO8_PALETTE)
-            .unwrap()
-            .clone(),
-    ));
-
     // let script_path = bevy_mod_scripting_lua::lua_path!("game_of_life");
     let handle = assets.add(image);
     commands.insert_resource(Nano9Screen(handle.clone()));
@@ -552,13 +262,7 @@ impl Plugin for Nano9Plugin {
         // .add_plugins(FrameTimeDiagnosticsPlugin)
         // .add_plugins(PixelBufferPlugin)
         .add_plugins(ScriptingPlugin)
-        .add_plugins((
-            // demo::plugin,
-            screens::plugin,
-            // theme::plugin,
-            assets::plugin,
-            // audio::plugin,
-        ))
+        .add_plugins(super::plugin)
         // .add_systems(
         //     Startup,
         //     PixelBufferBuilder::new()
@@ -571,7 +275,7 @@ impl Plugin for Nano9Plugin {
         // )
         .add_systems(OnExit(screens::Screen::Loading), setup_image)
         .add_systems(OnEnter(screens::Screen::Playing), send_init)
-        // .add_systems(Update, sync_window_size)
+        .add_systems(Update, sync_window_size)
         // .add_systems(Update, wild_update)
         // .add_systems(FixedUpdate, update_rendered_state.after(sync_window_size))
         .add_systems(
@@ -579,11 +283,7 @@ impl Plugin for Nano9Plugin {
             (send_update, send_draw)
                 .chain()
                 .run_if(in_state(screens::Screen::Playing)),
-        )
-        .add_systems(FixedUpdate, script_event_handler::<LuaScriptHost<()>, 0, 1>)
-        .add_script_host::<LuaScriptHost<()>>(PostUpdate)
-        .add_api_provider::<LuaScriptHost<()>>(Box::new(LuaCoreBevyAPIProvider))
-        .add_api_provider::<LuaScriptHost<()>>(Box::new(Nano9API));
+        );
     }
 }
 
