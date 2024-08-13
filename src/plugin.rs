@@ -3,7 +3,6 @@ use std::sync::Mutex;
 
 use bevy::{
     diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
-    window::PresentMode,
     ecs::system::SystemState,
     prelude::*,
     reflect::Reflect,
@@ -12,22 +11,29 @@ use bevy::{
         render_resource::{Extent3d, TextureDimension, TextureFormat},
         texture::ImageSampler,
     },
-    window::{PrimaryWindow, WindowResized, WindowResolution},
     utils::Duration,
+    window::PresentMode,
+    window::{PrimaryWindow, WindowResized, WindowResolution},
 };
 
-use bevy_mod_scripting::prelude::*;
-use bevy_mod_scripting::lua::prelude::tealr::mlu::mlua::{UserDataMethods, UserDataFields, UserData, MetaMethod};
 use bevy_asset_loader::prelude::*;
+use bevy_mod_scripting::lua::prelude::tealr::mlu::mlua::{
+    MetaMethod, UserData, UserDataFields, UserDataMethods,
+};
+use bevy_mod_scripting::prelude::*;
 // use bevy_pixel_buffer::prelude::*;
-use crate::{screens, pixel::PixelAccess, assets::{self, ImageHandles}};
+use crate::{
+    assets::{self, ImageHandles},
+    pixel::PixelAccess,
+    screens,
+};
 
 #[derive(AssetCollection, Resource)]
 struct ImageAssets {
-  #[asset(path = "images/pico-8-palette.png")]
-  palette: Handle<Image>,
-  // #[asset(key = "tree")]
-  // tree: Handle<Image>,
+    #[asset(path = "images/pico-8-palette.png")]
+    palette: Handle<Image>,
+    // #[asset(key = "tree")]
+    // tree: Handle<Image>,
 }
 
 // #[derive(Debug, Default, Clone, Reflect, Component, LuaProxy)]
@@ -47,14 +53,15 @@ pub struct Nano9Palette(Handle<Image>);
 
 impl Nano9Palette {
     fn get_color(c: Value, world: &mut World) -> Color {
-        let mut system_state: SystemState<(Res<Nano9Palette>, Res<Assets<Image>>)> = SystemState::new(world);
+        let mut system_state: SystemState<(Res<Nano9Palette>, Res<Assets<Image>>)> =
+            SystemState::new(world);
         let (palette, images) = system_state.get(&world);
         match c {
             Value::Integer(n) => {
                 let pal = images.get(&palette.0).unwrap();
                 pal.get_pixel(n as usize).unwrap()
             }
-            _ => todo!()
+            _ => todo!(),
         }
     }
 }
@@ -95,7 +102,8 @@ impl UserData for MySprite {
         fields.add_field_method_set("x", |ctx, this, value: f32| {
             let world = ctx.get_world()?;
             let mut world = world.write();
-            let mut system_state: SystemState<(Query<&mut Transform>)> = SystemState::new(&mut world);
+            let mut system_state: SystemState<(Query<&mut Transform>)> =
+                SystemState::new(&mut world);
             let (mut transforms) = system_state.get_mut(&mut world);
             let mut transform = transforms.get_mut(this.0).unwrap();
             transform.translation.x = value;
@@ -105,7 +113,8 @@ impl UserData for MySprite {
         fields.add_field_method_get("y", |ctx, this| {
             let world = ctx.get_world()?;
             let mut world = world.write();
-            let mut system_state: SystemState<(Query<&mut Transform>)> = SystemState::new(&mut world);
+            let mut system_state: SystemState<(Query<&mut Transform>)> =
+                SystemState::new(&mut world);
             let (mut transforms) = system_state.get_mut(&mut world);
             let mut transform = transforms.get_mut(this.0).unwrap();
             Ok(-transform.translation.y)
@@ -114,7 +123,8 @@ impl UserData for MySprite {
         fields.add_field_method_set("y", |ctx, this, value: f32| {
             let world = ctx.get_world()?;
             let mut world = world.write();
-            let mut system_state: SystemState<(Query<&mut Transform>)> = SystemState::new(&mut world);
+            let mut system_state: SystemState<(Query<&mut Transform>)> =
+                SystemState::new(&mut world);
             let (mut transforms) = system_state.get_mut(&mut world);
             let mut transform = transforms.get_mut(this.0).unwrap();
             transform.translation.y = -value;
@@ -175,7 +185,8 @@ impl UserData for MySprite {
         fields.add_field_method_set("index", |ctx, this, value| {
             let world = ctx.get_world()?;
             let mut world = world.write();
-            let mut system_state: SystemState<(Query<&mut TextureAtlas>)> = SystemState::new(&mut world);
+            let mut system_state: SystemState<(Query<&mut TextureAtlas>)> =
+                SystemState::new(&mut world);
             let (mut query) = system_state.get_mut(&mut world);
             let mut item = query.get_mut(this.0).unwrap();
             item.index = value;
@@ -197,7 +208,6 @@ impl UserData for MySprite {
     }
 }
 
-
 impl APIProvider for Nano9API {
     type APITarget = Mutex<Lua>;
     type ScriptContext = Mutex<Lua>;
@@ -216,14 +226,18 @@ impl APIProvider for Nano9API {
                 ctx.create_function(|ctx, (x, y, c): (f32, f32, Value)| {
                     let world = ctx.get_world()?;
                     let mut world = world.write();
-                    let mut system_state: SystemState<(Res<Nano9Screen>, Res<Nano9Palette>, ResMut<Assets<Image>>)> = SystemState::new(&mut world);
+                    let mut system_state: SystemState<(
+                        Res<Nano9Screen>,
+                        Res<Nano9Palette>,
+                        ResMut<Assets<Image>>,
+                    )> = SystemState::new(&mut world);
                     let (screen, palette, mut images) = system_state.get_mut(&mut world);
                     let color = match c {
                         Value::Integer(n) => {
                             let pal = images.get(&palette.0).unwrap();
                             pal.get_pixel(n as usize).unwrap()
                         }
-                        _ => todo!()
+                        _ => todo!(),
                     };
                     let mut image = images.get_mut(&screen.0).unwrap();
                     let _ = image.set_pixel((x as usize, y as usize), color);
@@ -252,7 +266,8 @@ impl APIProvider for Nano9API {
                 ctx.create_function(|ctx, (b): (u8)| {
                     let world = ctx.get_world()?;
                     let mut world = world.write();
-                    let mut system_state: SystemState<(Res<ButtonInput<KeyCode>>)> = SystemState::new(&mut world);
+                    let mut system_state: SystemState<(Res<ButtonInput<KeyCode>>)> =
+                        SystemState::new(&mut world);
                     let (input) = system_state.get(&world);
                     Ok(input.pressed(match b {
                         0 => KeyCode::ArrowLeft,
@@ -267,7 +282,28 @@ impl APIProvider for Nano9API {
                 .map_err(ScriptError::new_other)?,
             )
             .map_err(ScriptError::new_other)?;
-
+        ctx.globals()
+            .set(
+                "btnp",
+                ctx.create_function(|ctx, (b): (u8)| {
+                    let world = ctx.get_world()?;
+                    let mut world = world.write();
+                    let mut system_state: SystemState<(Res<ButtonInput<KeyCode>>)> =
+                        SystemState::new(&mut world);
+                    let (input) = system_state.get(&world);
+                    Ok(input.just_pressed(match b {
+                        0 => KeyCode::ArrowLeft,
+                        1 => KeyCode::ArrowRight,
+                        2 => KeyCode::ArrowUp,
+                        3 => KeyCode::ArrowDown,
+                        4 => KeyCode::KeyZ,
+                        5 => KeyCode::KeyX,
+                        x => todo!("key {x:?}"),
+                    }))
+                })
+                .map_err(ScriptError::new_other)?,
+            )
+            .map_err(ScriptError::new_other)?;
         ctx.globals()
             .set(
                 "spr",
@@ -275,24 +311,23 @@ impl APIProvider for Nano9API {
                 ctx.create_function(|ctx, (n): (i32)| {
                     let world = ctx.get_world()?;
                     let mut world = world.write();
-                    let mut system_state: SystemState<(Res<Nano9SpriteSheet>)> = SystemState::new(&mut world);
+                    let mut system_state: SystemState<(Res<Nano9SpriteSheet>)> =
+                        SystemState::new(&mut world);
                     let (sprite_sheet) = system_state.get(&world);
 
-                    let bundle = (SpriteBundle {
-                        texture: sprite_sheet.0.clone(),
-                        sprite: Sprite {
-                            custom_size: Some(Vec2::new(
-                                24.0,
-                                24.0,
-                            )),
+                    let bundle = (
+                        SpriteBundle {
+                            texture: sprite_sheet.0.clone(),
+                            sprite: Sprite {
+                                custom_size: Some(Vec2::new(24.0, 24.0)),
+                                ..default()
+                            },
                             ..default()
                         },
-                        ..default()
-                    },
-                                 TextureAtlas {
-                                     layout: sprite_sheet.1.clone(),
-                                     index: n as usize
-                                 }
+                        TextureAtlas {
+                            layout: sprite_sheet.1.clone(),
+                            index: n as usize,
+                        },
                     );
                     Ok(MySprite(world.spawn(bundle).id()))
                     // Ok(())
@@ -354,7 +389,12 @@ pub fn setup_image(
     // image.sampler = ImageSampler::nearest();
 
     // commands.insert_resource(Nano9Palette(assets.add(image)));
-    commands.insert_resource(Nano9Palette(image_handles.get(ImageHandles::PICO8_PALETTE).unwrap().clone()));
+    commands.insert_resource(Nano9Palette(
+        image_handles
+            .get(ImageHandles::PICO8_PALETTE)
+            .unwrap()
+            .clone(),
+    ));
 
     // let script_path = bevy_mod_scripting_lua::lua_path!("game_of_life");
     let handle = assets.add(image);
@@ -375,19 +415,19 @@ pub fn setup_image(
             ..Default::default()
         })
         .insert(Nano9Sprite);
-        // .insert(LifeState {
-        //     cells: vec![
-        //         0u8;
-        //         (settings.physical_grid_dimensions.0 * settings.physical_grid_dimensions.1)
-        //             as usize
-        //     ],
-        // })
-        // .insert(ScriptCollection::<LuaFile> {
-        //     scripts: vec![Script::new(
-        //         script_path.to_owned(),
-        //         asset_server.load(script_path),
-        //     )],
-        // });
+    // .insert(LifeState {
+    //     cells: vec![
+    //         0u8;
+    //         (settings.physical_grid_dimensions.0 * settings.physical_grid_dimensions.1)
+    //             as usize
+    //     ],
+    // })
+    // .insert(ScriptCollection::<LuaFile> {
+    //     scripts: vec![Script::new(
+    //         script_path.to_owned(),
+    //         asset_server.load(script_path),
+    //     )],
+    // });
 }
 
 pub fn sync_window_size(
@@ -484,63 +524,66 @@ pub struct Nano9Plugin;
 
 impl Plugin for Nano9Plugin {
     fn build(&self, app: &mut App) {
-        app
-            .insert_resource(bevy::winit::WinitSettings {
-                // focused_mode: bevy::winit::UpdateMode::Continuous,
-                focused_mode: bevy::winit::UpdateMode::ReactiveLowPower {
-                    wait: Duration::from_millis(16),
-                },
-                unfocused_mode: bevy::winit::UpdateMode::ReactiveLowPower {
-                    wait: Duration::from_millis(16),
-                },
-            })
-            .add_plugins(DefaultPlugins.set(WindowPlugin {
-                primary_window: Some(Window {
-                    resolution: WindowResolution::new(512.0, 512.0),//.with_scale_factor_override(1.0),
-                    // Turn off vsync to maximize CPU/GPU usage
-                    present_mode: PresentMode::AutoVsync,
+        app.insert_resource(bevy::winit::WinitSettings {
+            // focused_mode: bevy::winit::UpdateMode::Continuous,
+            focused_mode: bevy::winit::UpdateMode::ReactiveLowPower {
+                wait: Duration::from_millis(16),
+            },
+            unfocused_mode: bevy::winit::UpdateMode::ReactiveLowPower {
+                wait: Duration::from_millis(16),
+            },
+        })
+        .add_plugins(
+            DefaultPlugins
+                .set(WindowPlugin {
+                    primary_window: Some(Window {
+                        resolution: WindowResolution::new(512.0, 512.0), //.with_scale_factor_override(1.0),
+                        // Turn off vsync to maximize CPU/GPU usage
+                        present_mode: PresentMode::AutoVsync,
+                        ..default()
+                    }),
                     ..default()
-                }),
-                ..default()
-            })
-                         .set(
-                    ImagePlugin::default_nearest()
-                )
-            )
-            .insert_resource(Time::<Fixed>::from_seconds(UPDATE_FREQUENCY.into()))
-            .init_resource::<Settings>()
-            // .add_plugins(LogDiagnosticsPlugin::default())
-            // .add_plugins(FrameTimeDiagnosticsPlugin)
-            // .add_plugins(PixelBufferPlugin)
-            .add_plugins(ScriptingPlugin)
-
-            .add_plugins((
-                // demo::plugin,
-                screens::plugin,
-                // theme::plugin,
-                assets::plugin,
-                // audio::plugin,
-            ))
-            // .add_systems(
-            //     Startup,
-            //     PixelBufferBuilder::new()
-            //         .with_size(PixelBufferSize {
-            //             size: UVec2::new(128, 128),
-            //             pixel_size: UVec2::new(4, 4)
-            //         })
-            //         // .with_fill(Fill::window())//.with_stretch(true)) // set fill to the window
-            //         .setup(),
-            // )
-            .add_systems(OnExit(screens::Screen::Loading), setup_image)
-            .add_systems(OnEnter(screens::Screen::Playing), send_init)
-            // .add_systems(Update, sync_window_size)
-            // .add_systems(Update, wild_update)
+                })
+                .set(ImagePlugin::default_nearest()),
+        )
+        .insert_resource(Time::<Fixed>::from_seconds(UPDATE_FREQUENCY.into()))
+        .init_resource::<Settings>()
+        // .add_plugins(LogDiagnosticsPlugin::default())
+        // .add_plugins(FrameTimeDiagnosticsPlugin)
+        // .add_plugins(PixelBufferPlugin)
+        .add_plugins(ScriptingPlugin)
+        .add_plugins((
+            // demo::plugin,
+            screens::plugin,
+            // theme::plugin,
+            assets::plugin,
+            // audio::plugin,
+        ))
+        // .add_systems(
+        //     Startup,
+        //     PixelBufferBuilder::new()
+        //         .with_size(PixelBufferSize {
+        //             size: UVec2::new(128, 128),
+        //             pixel_size: UVec2::new(4, 4)
+        //         })
+        //         // .with_fill(Fill::window())//.with_stretch(true)) // set fill to the window
+        //         .setup(),
+        // )
+        .add_systems(OnExit(screens::Screen::Loading), setup_image)
+        .add_systems(OnEnter(screens::Screen::Playing), send_init)
+        // .add_systems(Update, sync_window_size)
+        // .add_systems(Update, wild_update)
         // .add_systems(FixedUpdate, update_rendered_state.after(sync_window_size))
-            .add_systems(FixedUpdate, (send_update, send_draw).chain().run_if(in_state(screens::Screen::Playing)))
-            .add_systems(FixedUpdate, script_event_handler::<LuaScriptHost<()>, 0, 1>)
-            .add_script_host::<LuaScriptHost<()>>(PostUpdate)
-            .add_api_provider::<LuaScriptHost<()>>(Box::new(LuaCoreBevyAPIProvider))
-            .add_api_provider::<LuaScriptHost<()>>(Box::new(Nano9API));
+        .add_systems(
+            FixedUpdate,
+            (send_update, send_draw)
+                .chain()
+                .run_if(in_state(screens::Screen::Playing)),
+        )
+        .add_systems(FixedUpdate, script_event_handler::<LuaScriptHost<()>, 0, 1>)
+        .add_script_host::<LuaScriptHost<()>>(PostUpdate)
+        .add_api_provider::<LuaScriptHost<()>>(Box::new(LuaCoreBevyAPIProvider))
+        .add_api_provider::<LuaScriptHost<()>>(Box::new(Nano9API));
     }
 }
 
