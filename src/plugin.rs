@@ -142,6 +142,26 @@ impl UserData for MySprite {
             Ok(())
         });
 
+        fields.add_field_method_set("sx", |ctx, this, value: f32| {
+            let world = ctx.get_world()?;
+            let mut world = world.write();
+            let mut system_state: SystemState<(Query<&mut Sprite>)> = SystemState::new(&mut world);
+            let (mut query) = system_state.get_mut(&mut world);
+            let mut item = query.get_mut(this.0).unwrap();
+            item.custom_size.get_or_insert(Vec2::ONE).x = value;
+            Ok(())
+        });
+
+        fields.add_field_method_set("sy", |ctx, this, value: f32| {
+            let world = ctx.get_world()?;
+            let mut world = world.write();
+            let mut system_state: SystemState<(Query<&mut Sprite>)> = SystemState::new(&mut world);
+            let (mut query) = system_state.get_mut(&mut world);
+            let mut item = query.get_mut(this.0).unwrap();
+            item.custom_size.get_or_insert(Vec2::ONE).y = value;
+            Ok(())
+        });
+
         fields.add_field_method_set("flip_y", |ctx, this, value: bool| {
             let world = ctx.get_world()?;
             let mut world = world.write();
@@ -213,6 +233,19 @@ impl APIProvider for Nano9API {
             )
             .map_err(ScriptError::new_other)?;
 
+        ctx.globals()
+            .set(
+                "time",
+                ctx.create_function(|ctx, _: ()| {
+                    let world = ctx.get_world()?;
+                    let mut world = world.write();
+                    let mut system_state: SystemState<(Res<Time>)> = SystemState::new(&mut world);
+                    let (time) = system_state.get(&world);
+                    Ok(time.elapsed_seconds())
+                })
+                .map_err(ScriptError::new_other)?,
+            )
+            .map_err(ScriptError::new_other)?;
         ctx.globals()
             .set(
                 "btn",
