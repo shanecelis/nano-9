@@ -45,6 +45,20 @@ pub struct Nano9Sprite;
 #[derive(Resource)]
 pub struct Nano9Palette(Handle<Image>);
 
+impl Nano9Palette {
+    fn get_color(c: Value, world: &mut World) -> Color {
+        let mut system_state: SystemState<(Res<Nano9Palette>, Res<Assets<Image>>)> = SystemState::new(world);
+        let (palette, images) = system_state.get(&world);
+        match c {
+            Value::Integer(n) => {
+                let pal = images.get(&palette.0).unwrap();
+                pal.get_pixel(n as usize).unwrap()
+            }
+            _ => todo!()
+        }
+    }
+}
+
 #[derive(Resource)]
 pub struct Nano9SpriteSheet(pub Handle<Image>, pub Handle<TextureAtlasLayout>);
 
@@ -60,6 +74,8 @@ pub struct DrawState {
 }
 
 struct MySprite(Entity);
+
+
 
 impl UserData for MySprite {
     fn add_fields<'lua, F: UserDataFields<'lua, Self>>(fields: &mut F) {
@@ -79,6 +95,25 @@ impl UserData for MySprite {
             let (mut transforms) = system_state.get_mut(&mut world);
             let mut transform = transforms.get_mut(this.0).unwrap();
             transform.translation.x = value;
+            Ok(())
+        });
+
+        fields.add_field_method_set("y", |ctx, this, value| {
+            let world = ctx.get_world()?;
+            let mut world = world.write();
+            let mut system_state: SystemState<(Query<&mut Transform>)> = SystemState::new(&mut world);
+            let (mut transforms) = system_state.get_mut(&mut world);
+            let mut transform = transforms.get_mut(this.0).unwrap();
+            transform.translation.y = value;
+            Ok(())
+        });
+
+        fields.add_field_method_set("c", |ctx, this, value| {
+            let world = ctx.get_world()?;
+            let mut world = world.write();
+            let c = Nano9Palette::get_color(value, &mut world);
+            let mut system_state: SystemState<(Query<&mut Sprite>)> = SystemState::new(&mut world);
+            let (mut sprite) = system_state.get_mut(&mut world);
             Ok(())
         });
     }

@@ -15,5 +15,10 @@ thiserror = "1.0.63"
 [dev-dependencies]
 bevy = "0.13"
 
+[[bin]]
+name = "nano-9"
+test = false
+bench = false
+
 # [patch.crates-io]
 # bevy_pixel_buffer = { path = "../bevy_pixel_buffer" }
