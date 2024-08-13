@@ -1,15 +1,13 @@
 //! get_pixel, set_pixel operations for Image
 //!
 use bevy::render::{
-    render_asset::RenderAssetUsages,
-    render_resource::{TextureFormat, Extent3d, TextureDimension},
+    render_resource::{TextureFormat, Extent3d},
     texture::{Image, TextureFormatPixelInfo}
 };
 
 // use bevy::color::{Color, ColorToComponents, ColorToPacked, LinearRgba, Srgba};
 use bevy::prelude::Color;
 use bevy::math::UVec2;
-use core::ops::{Bound, RangeBounds};
 use thiserror::Error;
 
 #[derive(Error, Debug, PartialEq, Eq)]
@@ -93,7 +91,7 @@ impl PixelAccess for Image {
         let image_size: Extent3d = self.texture_descriptor.size;
         let format = self.texture_descriptor.format;
         let components = format.components() as usize;
-        let pixel_size = format.pixel_size() as usize;
+        let pixel_size = format.pixel_size();
         let start = location
             .into()
             .index(&image_size)

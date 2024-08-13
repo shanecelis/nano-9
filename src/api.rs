@@ -2,24 +2,11 @@
 use std::sync::Mutex;
 
 use bevy::{
-    diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
     ecs::system::SystemState,
     prelude::*,
     reflect::Reflect,
-    render::{
-        render_asset::RenderAssetUsages,
-        render_resource::{Extent3d, TextureDimension, TextureFormat},
-        texture::ImageSampler,
-    },
-    utils::Duration,
-    window::PresentMode,
-    window::{PrimaryWindow, WindowResized, WindowResolution},
 };
 
-use bevy_asset_loader::prelude::*;
-use bevy_mod_scripting::lua::prelude::tealr::mlu::mlua::{
-    MetaMethod, UserData, UserDataFields, UserDataMethods,
-};
 use bevy_mod_scripting::prelude::*;
 // use bevy_pixel_buffer::prelude::*;
 use crate::{
@@ -27,9 +14,7 @@ use crate::{
     Nano9Screen,
     Nano9SpriteSheet,
     MySprite,
-    assets::{self, ImageHandles},
     pixel::PixelAccess,
-    screens,
 };
 
 pub fn plugin(app: &mut App) {
@@ -75,7 +60,7 @@ impl APIProvider for Nano9API {
                         }
                         _ => todo!(),
                     };
-                    let mut image = images.get_mut(&screen.0).unwrap();
+                    let image = images.get_mut(&screen.0).unwrap();
                     let _ = image.set_pixel((x as usize, y as usize), color);
                     Ok(())
                 })
@@ -89,8 +74,8 @@ impl APIProvider for Nano9API {
                 ctx.create_function(|ctx, _: ()| {
                     let world = ctx.get_world()?;
                     let mut world = world.write();
-                    let mut system_state: SystemState<(Res<Time>)> = SystemState::new(&mut world);
-                    let (time) = system_state.get(&world);
+                    let mut system_state: SystemState<Res<Time>> = SystemState::new(&mut world);
+                    let time = system_state.get(&world);
                     Ok(time.elapsed_seconds())
                 })
                 .map_err(ScriptError::new_other)?,
@@ -99,12 +84,12 @@ impl APIProvider for Nano9API {
         ctx.globals()
             .set(
                 "btn",
-                ctx.create_function(|ctx, (b): (u8)| {
+                ctx.create_function(|ctx, b: u8| {
                     let world = ctx.get_world()?;
                     let mut world = world.write();
-                    let mut system_state: SystemState<(Res<ButtonInput<KeyCode>>)> =
+                    let mut system_state: SystemState<Res<ButtonInput<KeyCode>>> =
                         SystemState::new(&mut world);
-                    let (input) = system_state.get(&world);
+                    let input = system_state.get(&world);
                     Ok(input.pressed(match b {
                         0 => KeyCode::ArrowLeft,
                         1 => KeyCode::ArrowRight,
@@ -121,12 +106,12 @@ impl APIProvider for Nano9API {
         ctx.globals()
             .set(
                 "btnp",
-                ctx.create_function(|ctx, (b): (u8)| {
+                ctx.create_function(|ctx, b: u8| {
                     let world = ctx.get_world()?;
                     let mut world = world.write();
-                    let mut system_state: SystemState<(Res<ButtonInput<KeyCode>>)> =
+                    let mut system_state: SystemState<Res<ButtonInput<KeyCode>>> =
                         SystemState::new(&mut world);
-                    let (input) = system_state.get(&world);
+                    let input = system_state.get(&world);
                     Ok(input.just_pressed(match b {
                         0 => KeyCode::ArrowLeft,
                         1 => KeyCode::ArrowRight,
@@ -144,12 +129,12 @@ impl APIProvider for Nano9API {
             .set(
                 "spr",
                 // ctx.create_function(|ctx, (n, x, y): (usize, f32, f32)| {
-                ctx.create_function(|ctx, (n): (i32)| {
+                ctx.create_function(|ctx, n: i32| {
                     let world = ctx.get_world()?;
                     let mut world = world.write();
-                    let mut system_state: SystemState<(Res<Nano9SpriteSheet>)> =
+                    let mut system_state: SystemState<Res<Nano9SpriteSheet>> =
                         SystemState::new(&mut world);
-                    let (sprite_sheet) = system_state.get(&world);
+                    let sprite_sheet = system_state.get(&world);
 
                     let bundle = (
                         SpriteBundle {
@@ -185,7 +170,7 @@ impl APIProvider for Nano9API {
                         ResMut<Assets<Image>>,
                     )> = SystemState::new(&mut world);
                     let (screen, mut images) = system_state.get_mut(&mut world);
-                    let mut image = images.get_mut(&screen.0).unwrap();
+                    let image = images.get_mut(&screen.0).unwrap();
                     let _ = image.set_pixels(|_, _| c);
                     Ok(())
                 })

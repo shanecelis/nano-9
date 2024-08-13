@@ -1,9 +1,6 @@
 #![allow(deprecated)]
-use std::sync::Mutex;
 
 use bevy::{
-    diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
-    ecs::system::SystemState,
     prelude::*,
     reflect::Reflect,
     render::{
@@ -17,14 +14,10 @@ use bevy::{
 };
 
 use bevy_asset_loader::prelude::*;
-use bevy_mod_scripting::lua::prelude::tealr::mlu::mlua::{
-    MetaMethod, UserData, UserDataFields, UserDataMethods,
-};
 use bevy_mod_scripting::prelude::*;
 // use bevy_pixel_buffer::prelude::*;
 use crate::{
-    assets::{self, ImageHandles},
-    pixel::PixelAccess,
+    assets::{ImageHandles},
     screens,
 };
 

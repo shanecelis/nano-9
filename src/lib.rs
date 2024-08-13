@@ -1,10 +1,7 @@
 
 use bevy::{
-    asset::AssetMetaCheck,
-    // audio::{AudioPlugin, Volume},
     prelude::*,
 };
-use bevy::ecs::schedule::SystemSet;
 mod sprite;
 mod palette;
 mod api;

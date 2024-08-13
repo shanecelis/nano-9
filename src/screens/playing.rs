@@ -1,8 +1,7 @@
 //! The screen state for the main game loop.
 
-use bevy::{input::common_conditions::input_just_pressed, prelude::*};
+use bevy::{prelude::*};
 
-use super::Screen;
 // use crate::{assets::BgmHandles, audio::bgm::BgmCommands as _, demo::level::SpawnLevel};
 
 pub(super) fn plugin(app: &mut App) {
