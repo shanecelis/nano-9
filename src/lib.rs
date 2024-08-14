@@ -24,7 +24,7 @@ pub(crate) fn plugin(app: &mut App) {
         // theme::plugin,
         assets::plugin,
         api::plugin,
-        // sprite::plugin,
+        sprite::plugin,
         palette::plugin,
         // audio::plugin,
     ));

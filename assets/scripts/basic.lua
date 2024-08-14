@@ -10,6 +10,7 @@ animate = {
         count = 3
     }
 }
+s = nil
 
 function _init()
     -- s = spr(8 * 24 + 15)
@@ -35,6 +36,7 @@ function _draw()
     if btnp(4) then
         scratch_start = t
     end
+
     if scratch_start then
         -- cat scratches
         added = t - scratch_start
@@ -44,6 +46,7 @@ function _draw()
         else
             s.index = animate.scratch.index + added
         end
+
     else
         -- cat is not scratching
         if btn(0) then
@@ -63,4 +66,6 @@ function _draw()
     -- s.x = x
     -- s.y = x
     -- s.index = x
+    --
+    --
 end

@@ -14,7 +14,10 @@ use bevy::{
 };
 
 use bevy_asset_loader::prelude::*;
-use bevy_mod_scripting::prelude::*;
+use bevy_mod_scripting::{
+    prelude::*,
+    core::event::ScriptLoaded,
+};
 // use bevy_pixel_buffer::prelude::*;
 use crate::{
     assets::{ImageHandles},
@@ -199,6 +202,7 @@ pub fn send_update(mut events: PriorityEventWriter<LuaEvent<()>>) {
 
 /// Sends initialization event
 pub fn send_init(mut events: PriorityEventWriter<LuaEvent<()>>) {
+    eprintln!("init");
     events.send(
         LuaEvent {
             hook_name: "_init".to_owned(),
@@ -267,7 +271,9 @@ impl Plugin for Nano9Plugin {
         //         .setup(),
         // )
         .add_systems(OnExit(screens::Screen::Loading), setup_image)
-        .add_systems(OnEnter(screens::Screen::Playing), send_init)
+        // .add_systems(OnEnter(screens::Screen::Playing), send_init)
+        // .add_systems(PreUpdate, send_init.run_if(on_asset_modified::<LuaFile>()))
+        .add_systems(PreUpdate, send_init.run_if(on_event::<ScriptLoaded>()))
         .add_systems(Update, sync_window_size)
         // .add_systems(Update, wild_update)
         // .add_systems(FixedUpdate, update_rendered_state.after(sync_window_size))
@@ -278,6 +284,13 @@ impl Plugin for Nano9Plugin {
                 .run_if(in_state(screens::Screen::Playing)),
         );
     }
+}
+pub fn on_asset_modified<T: Asset>() -> impl FnMut(EventReader<AssetEvent<T>>) -> bool + Clone {
+    // The events need to be consumed, so that there are no false positives on subsequent
+    // calls of the run condition. Simply checking `is_empty` would not be enough.
+    // PERF: note that `count` is efficient (not actually looping/iterating),
+    // due to Bevy having a specialized implementation for events.
+    move |mut reader: EventReader<AssetEvent<T>>| reader.read().any(|e| matches!(e, AssetEvent::Modified { .. }))
 }
 
 // fn wild_update(mut pb: QueryPixelBuffer) {

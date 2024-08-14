@@ -12,15 +12,39 @@ use bevy_mod_scripting::prelude::*;
 use crate::{
     palette::Nano9Palette,
 };
+use std::sync::OnceLock;
 
+fn despawn_list() -> Option<&'static mut Vec<Entity>> {
+    static mut MEM: OnceLock<Vec<Entity>> = OnceLock::new();
+    unsafe {
+        let _ = MEM.get_or_init(|| Vec::new());
+        MEM.get_mut()
+    }
+}
 
 pub struct MySprite(pub Entity);
 
-// impl Drop for MySprite {
-//     fn drop(&mut self) {
-//         eprintln!("Blah");
-//     }
-// }
+impl Drop for MySprite {
+    fn drop(&mut self) {
+        if let Some(list) = despawn_list() {
+            list.push(self.0);
+        } else {
+            warn!("Unable to despawn sprite {:?}.", self.0);
+        }
+    }
+}
+
+fn despawn_list_system(mut commands: Commands) {
+    if let Some(list) = despawn_list() {
+        for id in list.drain(..) {
+            commands.entity(id).despawn();
+        }
+    }
+}
+
+pub(crate) fn plugin(app: &mut App) {
+    app.add_systems(PostUpdate, despawn_list_system);
+}
 
 impl UserData for MySprite {
     fn add_fields<'lua, F: UserDataFields<'lua, Self>>(fields: &mut F) {
@@ -129,7 +153,7 @@ impl UserData for MySprite {
     }
 
     fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
-        methods.add_method_mut("drop", |ctx, this, value: ()| {
+        methods.add_method_mut("drop", |ctx, this, _: ()| {
             let world = ctx.get_world()?;
             let mut world = world.write();
             world.despawn(this.0);
