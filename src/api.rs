@@ -6,8 +6,14 @@ use bevy::{
     prelude::*,
     reflect::Reflect,
 };
+use bevy_mod_scripting::{
+    prelude::*,
+    api::lua::RegisterForeignLuaType,
+};
 
-use bevy_mod_scripting::prelude::*;
+use bevy_mod_scripting::lua::prelude::tealr::mlu::mlua::{self,
+    UserData, UserDataFields, UserDataMethods,
+};
 // use bevy_pixel_buffer::prelude::*;
 use crate::{
     Nano9Palette,
@@ -17,9 +23,32 @@ use crate::{
     pixel::PixelAccess,
 };
 
+
+#[derive(Clone)]
+pub struct MyHandle<T: Asset + Clone>(pub Handle<T>);
+
+impl<T: Asset + Clone> UserData for MyHandle<T> {}
+// We can implement `FromLua` trait for our `Vec2` to return a copy
+impl<T: Asset + Clone> FromLua<'_> for MyHandle<T> {
+    fn from_lua(value: Value, _: &Lua) -> mlua::Result<Self> {
+        match value {
+            Value::UserData(ud) => Ok(ud.borrow::<Self>()?.clone()),
+            _ => unreachable!(),
+        }
+    }
+}
+
+// impl<'lua, T: Asset> IntoLua<'lua> for MyHandle<T> {
+//     fn into_lua(self, lua: &'lua Lua) -> mlua::Result<Value<'lua>> {
+//         Ok(Value::UserData(self.into()))
+//     }
+// }
+
+
 pub fn plugin(app: &mut App) {
     app
         .add_systems(FixedUpdate, script_event_handler::<LuaScriptHost<()>, 0, 1>)
+        // .register_foreign_lua_type::<Handle<Image>>()
         .add_script_host::<LuaScriptHost<()>>(PostUpdate)
         .add_api_provider::<LuaScriptHost<()>>(Box::new(LuaCoreBevyAPIProvider))
         .add_api_provider::<LuaScriptHost<()>>(Box::new(Nano9API));
@@ -172,6 +201,38 @@ impl APIProvider for Nano9API {
                     let (screen, mut images) = system_state.get_mut(&mut world);
                     let image = images.get_mut(&screen.0).unwrap();
                     let _ = image.set_pixels(|_, _| c);
+                    Ok(())
+                })
+                .map_err(ScriptError::new_other)?,
+            )
+            .map_err(ScriptError::new_other)?;
+
+        ctx.globals()
+            .set(
+                "loadimg",
+                ctx.create_function(|ctx, path: String| {
+                    let world = ctx.get_world()?;
+                    let mut world = world.write();
+                    let mut system_state: SystemState<(
+                        Res<AssetServer>,
+                        ResMut<Assets<Image>>,
+                    )> = SystemState::new(&mut world);
+                    let (server, mut images) = system_state.get_mut(&mut world);
+                    let handle: Handle<Image> = server.load(&path);
+                    Ok(MyHandle(handle))
+                    // Ok(())
+                })
+                .map_err(ScriptError::new_other)?,
+            )
+            .map_err(ScriptError::new_other)?;
+
+        ctx.globals()
+            .set(
+                "setpal",
+                ctx.create_function(|ctx, img: MyHandle<Image>| {
+                    let world = ctx.get_world()?;
+                    let mut world = world.write();
+                    world.insert_resource(Nano9Palette(img.0));
                     Ok(())
                 })
                 .map_err(ScriptError::new_other)?,

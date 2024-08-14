@@ -28,15 +28,7 @@ use crate::{
 struct ImageAssets {
     #[asset(path = "images/pico-8-palette.png")]
     palette: Handle<Image>,
-    // #[asset(key = "tree")]
-    // tree: Handle<Image>,
 }
-
-// #[derive(Debug, Default, Clone, Reflect, Component, LuaProxy)]
-// #[reflect(Component, LuaProxyable)]
-// pub struct LifeState {
-//     pub cells: Vec<u8>,
-// }
 
 #[derive(Component)]
 pub struct Nano9Sprite;
@@ -52,7 +44,6 @@ pub struct DrawState {
     pen: Color,
     camera_position: Vec2,
     print_cursor: Vec2,
-    // palette_modifications:
 }
 
 
@@ -93,16 +84,6 @@ pub fn setup_image(
         RenderAssetUsages::RENDER_WORLD | RenderAssetUsages::MAIN_WORLD,
     );
 
-    image.sampler = ImageSampler::nearest();
-    // let handle = asset_server.load("images/pico-8-palette.png");
-    // let mut image = assets.get(image_handles.get(ImageHandles::PICO8_PALETTE).unwrap())
-    //                       .expect("image")
-    //                       .convert(Pixel::FORMAT)
-    //                       .expect("convert to pixel format");
-    // image.sampler = ImageSampler::nearest();
-
-    // commands.insert_resource(Nano9Palette(assets.add(image)));
-    // let script_path = bevy_mod_scripting_lua::lua_path!("game_of_life");
     let handle = assets.add(image);
     commands.insert_resource(Nano9Screen(handle.clone()));
     commands.spawn(Camera2dBundle::default());
@@ -115,25 +96,11 @@ pub fn setup_image(
                     settings.display_grid_dimensions.0 as f32,
                     settings.display_grid_dimensions.1 as f32,
                 )),
-                // color: Color::TOMATO,
-                ..Default::default()
+                ..default()
             },
-            ..Default::default()
+            ..default()
         })
         .insert(Nano9Sprite);
-    // .insert(LifeState {
-    //     cells: vec![
-    //         0u8;
-    //         (settings.physical_grid_dimensions.0 * settings.physical_grid_dimensions.1)
-    //             as usize
-    //     ],
-    // })
-    // .insert(ScriptCollection::<LuaFile> {
-    //     scripts: vec![Script::new(
-    //         script_path.to_owned(),
-    //         asset_server.load(script_path),
-    //     )],
-    // });
 }
 
 pub fn sync_window_size(
@@ -173,20 +140,6 @@ pub fn sync_window_size(
         }
     }
 }
-
-/// Runs after LifeState components are updated, updates their rendered representation
-// pub fn update_rendered_state(
-//     mut assets: ResMut<Assets<Image>>,
-//     query: Query<(&LifeState, &Handle<Image>)>,
-// ) {
-//     for (new_state, old_rendered_state) in query.iter() {
-//         let old_rendered_state = assets
-//             .get_mut(old_rendered_state)
-//             .expect("World is not setup correctly");
-
-//         old_rendered_state.data = new_state.cells.clone();
-//     }
-// }
 
 /// Sends events allowing scripts to drive update logic
 pub fn send_update(mut events: PriorityEventWriter<LuaEvent<()>>) {
@@ -237,7 +190,7 @@ impl Plugin for Nano9Plugin {
                 wait: Duration::from_millis(16),
             },
             unfocused_mode: bevy::winit::UpdateMode::ReactiveLowPower {
-                wait: Duration::from_millis(16),
+                wait: Duration::from_millis(16 * 4),
             },
         })
         .add_plugins(
@@ -255,28 +208,13 @@ impl Plugin for Nano9Plugin {
         )
         .insert_resource(Time::<Fixed>::from_seconds(UPDATE_FREQUENCY.into()))
         .init_resource::<Settings>()
-        // .add_plugins(LogDiagnosticsPlugin::default())
-        // .add_plugins(FrameTimeDiagnosticsPlugin)
-        // .add_plugins(PixelBufferPlugin)
         .add_plugins(ScriptingPlugin)
-        .add_plugins(super::plugin)
-        // .add_systems(
-        //     Startup,
-        //     PixelBufferBuilder::new()
-        //         .with_size(PixelBufferSize {
-        //             size: UVec2::new(128, 128),
-        //             pixel_size: UVec2::new(4, 4)
-        //         })
-        //         // .with_fill(Fill::window())//.with_stretch(true)) // set fill to the window
-        //         .setup(),
-        // )
+        .add_plugins(crate::plugin)
         .add_systems(OnExit(screens::Screen::Loading), setup_image)
         // .add_systems(OnEnter(screens::Screen::Playing), send_init)
         // .add_systems(PreUpdate, send_init.run_if(on_asset_modified::<LuaFile>()))
         .add_systems(PreUpdate, send_init.run_if(on_event::<ScriptLoaded>()))
         .add_systems(Update, sync_window_size)
-        // .add_systems(Update, wild_update)
-        // .add_systems(FixedUpdate, update_rendered_state.after(sync_window_size))
         .add_systems(
             FixedUpdate,
             (send_update, send_draw)
@@ -292,7 +230,3 @@ pub fn on_asset_modified<T: Asset>() -> impl FnMut(EventReader<AssetEvent<T>>) -
     // due to Bevy having a specialized implementation for events.
     move |mut reader: EventReader<AssetEvent<T>>| reader.read().any(|e| matches!(e, AssetEvent::Modified { .. }))
 }
-
-// fn wild_update(mut pb: QueryPixelBuffer) {
-//     pb.frame().per_pixel(|_, _| Pixel::random());
-// }
