@@ -1,3 +1,6 @@
+-- main.lua
+--
+-- A great cat game
 speed = 30
 animate = {
     right = {
@@ -10,34 +13,34 @@ animate = {
     },
     jump = {
         index = 24,
-        count = 1
+        count = 1,
     }
 }
 ground = -64
 
 -- _init() is called once per load.
 function _init()
-  -- load the cat sprites
-  cat_sprites = loadimg("images/Cat_Sprite.png")
-  -- set up the sprite sheet
-  cat_sprites:set_grid(32, 32, 4, 8)
-  -- create the cat sprite
-  s = cat_sprites:spr(8)
-  -- s.y = ground        -- place cat on ground
-  s.anchor = {0, -0.8}   -- move the cat sprite by its bottom-center.
+    -- load the cat sprites
+    cat_sprites = loadimg("images/Cat_Sprite.png")
+    -- set up the sprite sheet
+    cat_sprites:set_grid(32, 32, 4, 8)
+    -- create the cat sprite
+    s = cat_sprites:spr(8)
+    -- s.y = ground        -- place cat on ground
+    s.anchor = { 0, -0.8 } -- move the cat sprite by its bottom-center.
 
-  -- load the hearts image
-  hearts = loadimg("images/heart-of-a-thousand-miles.png");
-  -- set up the sprite sheet
-  hearts:set_grid(12, 12, 10, 10)
-  -- create the first heart sprite
-  h1 = hearts:spr(0)
-  h1.anchor = {-1, 1}   -- move the heart sprite by its top-left.
-  -- place heart on top left of screen.
-  h1.x = -64
-  h1.y = 64
-  -- clear the screen
-  cls(1)
+    -- load the hearts image
+    hearts = loadimg("images/heart-of-a-thousand-miles.png");
+    -- set up the sprite sheet
+    hearts:set_grid(12, 12, 10, 10)
+    -- create the first heart sprite
+    h1 = hearts:spr(0)
+    h1.anchor = { -1, 1 } -- move the heart sprite by its top-left.
+    -- place heart on top left of screen.
+    h1.x = -64
+    h1.y = 64
+    -- clear the screen
+    cls(1)
 end
 
 -- _draw() is called once per frame, or 60 times a second.
@@ -65,7 +68,7 @@ function _draw()
         -- cat is scratching
 
         -- scratch_frame is either 0, 1, 2 for the three frames.
-      scratch_frame = (t - scratch_start) * anim_speed
+        scratch_frame = (t - scratch_start) * anim_speed
         if scratch_frame >= animate.scratch.count then
             scratch_start = nil -- stop scratching
             s.index = 8         -- set our animation to 8
