@@ -5,7 +5,7 @@ use std::env;
 
 fn main() -> std::io::Result<()> {
     let mut args = env::args();
-    let script_path: String = args.next().unwrap_or("scripts/main.lua".into());
+    let script_path: String = args.skip(1).next().unwrap_or("scripts/main.lua".into());
     App::new()
         .add_plugins(Nano9Plugin::default())
         .add_systems(Startup, move |asset_server: Res<AssetServer>, mut commands: Commands| {
