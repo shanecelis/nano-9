@@ -4,6 +4,7 @@ use bevy::{
     prelude::*,
     reflect::Reflect,
     render::{
+        camera::ScalingMode,
         render_asset::RenderAssetUsages,
         render_resource::{Extent3d, TextureDimension, TextureFormat},
         texture::ImageSampler,
@@ -41,9 +42,9 @@ pub struct Nano9Screen(pub Handle<Image>);
 
 #[derive(Resource, Default)]
 pub struct DrawState {
-    pen: Color,
-    camera_position: Vec2,
-    print_cursor: Vec2,
+    pub pen: Color,
+    pub camera_position: Vec2,
+    pub print_cursor: Vec2,
 }
 
 
@@ -86,7 +87,9 @@ pub fn setup_image(
 
     let handle = assets.add(image);
     commands.insert_resource(Nano9Screen(handle.clone()));
-    commands.spawn(Camera2dBundle::default());
+    let mut camera_bundle = Camera2dBundle::default();
+        camera_bundle.projection.scaling_mode = ScalingMode::FixedVertical(512.0);
+    commands.spawn(camera_bundle);
     commands
         .spawn(SpriteBundle {
             transform: Transform::from_xyz(0.0, 0.0, -1.0),
@@ -208,13 +211,14 @@ impl Plugin for Nano9Plugin {
         )
         .insert_resource(Time::<Fixed>::from_seconds(UPDATE_FREQUENCY.into()))
         .init_resource::<Settings>()
+        .init_resource::<DrawState>()
         .add_plugins(ScriptingPlugin)
         .add_plugins(crate::plugin)
         .add_systems(OnExit(screens::Screen::Loading), setup_image)
         // .add_systems(OnEnter(screens::Screen::Playing), send_init)
         // .add_systems(PreUpdate, send_init.run_if(on_asset_modified::<LuaFile>()))
         .add_systems(PreUpdate, send_init.run_if(on_event::<ScriptLoaded>()))
-        .add_systems(Update, sync_window_size)
+        // .add_systems(Update, sync_window_size)
         .add_systems(
             FixedUpdate,
             (send_update, send_draw)

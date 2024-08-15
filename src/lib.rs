@@ -4,16 +4,22 @@ use bevy::{
 };
 mod sprite;
 mod palette;
-mod api;
+pub mod api;
 mod pixel;
 mod plugin;
 mod assets;
+mod image;
 pub mod screens;
 pub use plugin::*;
 pub use sprite::*;
+pub use image::*;
 pub use palette::*;
 
-
+#[derive(thiserror::Error, Debug)]
+pub enum N9Error {
+    #[error("palette unavailable")]
+    PaletteUnavailable,
+}
 
 pub(crate) fn plugin(app: &mut App) {
 

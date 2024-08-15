@@ -7,6 +7,7 @@ use bevy::{
 use bevy_mod_scripting::prelude::*;
 // use bevy_pixel_buffer::prelude::*;
 use crate::{
+    DrawState,
     assets::{ImageHandles},
     pixel::PixelAccess,
 };
@@ -32,13 +33,13 @@ pub struct Nano9Palette(pub Handle<Image>);
 
 impl Nano9Palette {
     pub fn get_color(c: Value, world: &mut World) -> Color {
-        let mut system_state: SystemState<(Res<Nano9Palette>, Res<Assets<Image>>)> =
+        let mut system_state: SystemState<(Res<Nano9Palette>, Res<Assets<Image>>, Res<DrawState>)> =
             SystemState::new(world);
-        let (palette, images) = system_state.get(world);
+        let (palette, images, draw_state) = system_state.get(world);
         match c {
             Value::Integer(n) => {
-                let pal = images.get(&palette.0).unwrap();
-                pal.get_pixel(n as usize).unwrap()
+                images.get(&palette.0)
+                      .and_then(|pal| pal.get_pixel(n as usize).ok()).unwrap_or(draw_state.pen)
             }
             _ => todo!(),
         }

@@ -1,5 +1,5 @@
 #![allow(deprecated)]
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use bevy::{
     ecs::system::SystemState,
@@ -16,6 +16,9 @@ use bevy_mod_scripting::lua::prelude::tealr::mlu::mlua::{self,
 };
 // use bevy_pixel_buffer::prelude::*;
 use crate::{
+    DrawState,
+    N9Error,
+    N9Image,
     Nano9Palette,
     Nano9Screen,
     Nano9SpriteSheet,
@@ -27,7 +30,6 @@ use crate::{
 #[derive(Clone)]
 pub struct MyHandle<T: Asset + Clone>(pub Handle<T>);
 
-impl<T: Asset + Clone> UserData for MyHandle<T> {}
 // We can implement `FromLua` trait for our `Vec2` to return a copy
 impl<T: Asset + Clone> FromLua<'_> for MyHandle<T> {
     fn from_lua(value: Value, _: &Lua) -> mlua::Result<Self> {
@@ -38,11 +40,7 @@ impl<T: Asset + Clone> FromLua<'_> for MyHandle<T> {
     }
 }
 
-// impl<'lua, T: Asset> IntoLua<'lua> for MyHandle<T> {
-//     fn into_lua(self, lua: &'lua Lua) -> mlua::Result<Value<'lua>> {
-//         Ok(Value::UserData(self.into()))
-//     }
-// }
+impl<T: Asset + Clone> UserData for MyHandle<T> {}
 
 
 pub fn plugin(app: &mut App) {
@@ -76,19 +74,12 @@ impl APIProvider for Nano9API {
                 ctx.create_function(|ctx, (x, y, c): (f32, f32, Value)| {
                     let world = ctx.get_world()?;
                     let mut world = world.write();
+                    let color = Nano9Palette::get_color(c, &mut world);
                     let mut system_state: SystemState<(
                         Res<Nano9Screen>,
-                        Res<Nano9Palette>,
                         ResMut<Assets<Image>>,
                     )> = SystemState::new(&mut world);
-                    let (screen, palette, mut images) = system_state.get_mut(&mut world);
-                    let color = match c {
-                        Value::Integer(n) => {
-                            let pal = images.get(&palette.0).unwrap();
-                            pal.get_pixel(n as usize).unwrap()
-                        }
-                        _ => todo!(),
-                    };
+                    let (screen, mut images) = system_state.get_mut(&mut world);
                     let image = images.get_mut(&screen.0).unwrap();
                     let _ = image.set_pixel((x as usize, y as usize), color);
                     Ok(())
@@ -215,11 +206,10 @@ impl APIProvider for Nano9API {
                     let mut world = world.write();
                     let mut system_state: SystemState<(
                         Res<AssetServer>,
-                        ResMut<Assets<Image>>,
-                    )> = SystemState::new(&mut world);
-                    let (server, mut images) = system_state.get_mut(&mut world);
+                        )> = SystemState::new(&mut world);
+                    let (server,) = system_state.get(& world);
                     let handle: Handle<Image> = server.load(&path);
-                    Ok(MyHandle(handle))
+                    Ok(N9Image { handle, layout: None })
                     // Ok(())
                 })
                 .map_err(ScriptError::new_other)?,
@@ -229,10 +219,10 @@ impl APIProvider for Nano9API {
         ctx.globals()
             .set(
                 "setpal",
-                ctx.create_function(|ctx, img: MyHandle<Image>| {
+                ctx.create_function(|ctx, img: N9Image| {
                     let world = ctx.get_world()?;
                     let mut world = world.write();
-                    world.insert_resource(Nano9Palette(img.0));
+                    world.insert_resource(Nano9Palette(img.handle.clone()));
                     Ok(())
                 })
                 .map_err(ScriptError::new_other)?,

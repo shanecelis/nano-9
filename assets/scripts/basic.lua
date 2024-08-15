@@ -20,22 +20,30 @@ animate = {
 
 -- _init() is called once per load.
 function _init()
-    --img = loadimg("images/Goblin22.png")
-    --setpal(img)
-    -- s = spr(8 * 24 + 15)
-    --
-    s = spr(8) -- load cat sprite
-    --s.color = 1
-    -- Make sprite two times bigger.
-    s.sx = 2 * 32
-    s.sy = 2 * 32
-    t = 0
+  x = 0
+  -- s = spr(8 * 24 + 15)
+  --
+  s = spr(8) -- load cat sprite
+  --s.color = 1
+  -- Make sprite two times bigger.
+  s.sx = 2 * 32
+  s.sy = 2 * 32
+  t = 0
+  hearts = loadimg("images/heart-of-a-thousand-miles.png");
+  hearts:set_grid(12, 12, 10, 10)
+  h1 = hearts:spr(0)
+  img = loadimg("images/Goblin22.png")
+ -- setpal(img)
+  cls(1)
+
 end
 
 -- _draw() is called once per frame, or 60 times a second.
 function _draw()
+  -- cls(1)
     -- pset(x, y, c) sets the pixel at location (x, y) to color c.
-    -- pset(x, x, 8)
+    pset(x, x, 0)
+    x = x + 1
 
     -- t is our animation time.
     t = time() * speed * 4
