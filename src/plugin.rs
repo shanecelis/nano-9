@@ -60,6 +60,9 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Self {
+            // physical_grid_dimensions: (64, 64),
+            // physical_grid_dimensions: (32, 32),
+            // physical_grid_dimensions: (12, 12),
             physical_grid_dimensions: (128, 128),
             display_grid_dimensions: (512, 512),
         }
@@ -71,12 +74,12 @@ pub fn setup_image(
     image_handles: Res<ImageHandles>,
     mut assets: ResMut<Assets<Image>>,
     asset_server: Res<AssetServer>,
-    settings: Res<Settings>,
+    settings: Res<N9Settings>,
 ) {
     let mut image = Image::new_fill(
         Extent3d {
-            width: settings.physical_grid_dimensions.0,
-            height: settings.physical_grid_dimensions.1,
+            width: settings.canvas_size.x,
+            height: settings.canvas_size.y,
             depth_or_array_layers: 1,
         },
         TextureDimension::D2,
@@ -89,20 +92,13 @@ pub fn setup_image(
     commands.insert_resource(Nano9Screen(handle.clone()));
     let mut camera_bundle = Camera2dBundle::default();
     // camera_bundle.projection.scaling_mode = ScalingMode::FixedVertical(512.0);
-    camera_bundle.projection.scaling_mode = ScalingMode::WindowSize(8.0);
+    camera_bundle.projection.scaling_mode = ScalingMode::WindowSize(settings.pixel_scale);
 
     commands.spawn(camera_bundle);
     commands
         .spawn(SpriteBundle {
             transform: Transform::from_xyz(0.0, 0.0, -1.0),
             texture: handle,
-            sprite: Sprite {
-                // custom_size: Some(Vec2::new(
-                //     settings.display_grid_dimensions.0 as f32,
-                //     settings.display_grid_dimensions.1 as f32,
-                // )),
-                ..default()
-            },
             ..default()
         })
         .insert(Nano9Sprite);
@@ -185,10 +181,30 @@ pub fn send_draw(mut events: PriorityEventWriter<LuaEvent<()>>) {
 
 const UPDATE_FREQUENCY: f32 = 1.0 / 60.0;
 
-pub struct Nano9Plugin;
+#[derive(Default)]
+pub struct Nano9Plugin {
+    settings: N9Settings
+}
+
+#[derive(Resource)]
+pub struct N9Settings {
+    canvas_size: UVec2,
+    pixel_scale: f32,
+}
+
+impl Default for N9Settings {
+    fn default() -> Self {
+        Self {
+            canvas_size: UVec2::splat(128),
+            pixel_scale: 4.0,
+        }
+    }
+}
 
 impl Plugin for Nano9Plugin {
     fn build(&self, app: &mut App) {
+        let settings = &self.settings;
+        let resolution = settings.canvas_size.as_vec2() * settings.pixel_scale;
         app.insert_resource(bevy::winit::WinitSettings {
             // focused_mode: bevy::winit::UpdateMode::Continuous,
             focused_mode: bevy::winit::UpdateMode::ReactiveLowPower {
@@ -202,9 +218,16 @@ impl Plugin for Nano9Plugin {
             DefaultPlugins
                 .set(WindowPlugin {
                     primary_window: Some(Window {
-                        resolution: WindowResolution::new(512.0, 512.0), //.with_scale_factor_override(1.0),
+                        resolution: WindowResolution::new(resolution.x, resolution.y),
                         // Turn off vsync to maximize CPU/GPU usage
                         present_mode: PresentMode::AutoVsync,
+                        // Let's not allow resizing.
+                        resize_constraints: WindowResizeConstraints {
+                            min_width: resolution.x,
+                            max_width: resolution.x,
+                            min_height: resolution.y,
+                            max_height: resolution.y,
+                        },
                         ..default()
                     }),
                     ..default()
@@ -212,7 +235,7 @@ impl Plugin for Nano9Plugin {
                 .set(ImagePlugin::default_nearest()),
         )
         .insert_resource(Time::<Fixed>::from_seconds(UPDATE_FREQUENCY.into()))
-        .init_resource::<Settings>()
+        .init_resource::<N9Settings>()
         .init_resource::<DrawState>()
         .add_plugins(ScriptingPlugin)
         .add_plugins(crate::plugin)

@@ -104,7 +104,7 @@ impl APIProvider for Nano9API {
 
         ctx.globals()
             .set(
-                "delta",
+                "delta_time",
                 ctx.create_function(|ctx, _: ()| {
                     let world = ctx.get_world()?;
                     let mut world = world.write();
@@ -155,37 +155,6 @@ impl APIProvider for Nano9API {
                         5 => KeyCode::KeyX,
                         x => todo!("key {x:?}"),
                     }))
-                })
-                .map_err(ScriptError::new_other)?,
-            )
-            .map_err(ScriptError::new_other)?;
-        ctx.globals()
-            .set(
-                "spr",
-                // ctx.create_function(|ctx, (n, x, y): (usize, f32, f32)| {
-                ctx.create_function(|ctx, n: i32| {
-                    let world = ctx.get_world()?;
-                    let mut world = world.write();
-                    let mut system_state: SystemState<Res<Nano9SpriteSheet>> =
-                        SystemState::new(&mut world);
-                    let sprite_sheet = system_state.get(&world);
-
-                    let bundle = (
-                        SpriteBundle {
-                            texture: sprite_sheet.0.clone(),
-                            sprite: Sprite {
-                                custom_size: Some(Vec2::new(24.0, 24.0)),
-                                ..default()
-                            },
-                            ..default()
-                        },
-                        TextureAtlas {
-                            layout: sprite_sheet.1.clone(),
-                            index: n as usize,
-                        },
-                    );
-                    Ok(MySprite(world.spawn(bundle).id()))
-                    // Ok(())
                 })
                 .map_err(ScriptError::new_other)?,
             )

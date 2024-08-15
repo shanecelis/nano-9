@@ -4,7 +4,7 @@ use nano_9::*;
 
 fn main() -> std::io::Result<()> {
     App::new()
-        .add_plugins(Nano9Plugin)
+        .add_plugins(Nano9Plugin::default())
         .add_systems(Startup, setup)
         .run();
 
