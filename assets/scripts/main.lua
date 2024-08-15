@@ -1,6 +1,7 @@
 -- main.lua
 --
 -- A great cat game
+--
 speed = 30
 animate = {
     right = {
