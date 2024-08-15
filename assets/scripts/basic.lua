@@ -12,7 +12,6 @@ animate = {
         index = 24,
         count = 1
     }
-
 }
 ground = -64
 
