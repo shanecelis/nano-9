@@ -196,7 +196,7 @@ impl Default for N9Settings {
     fn default() -> Self {
         Self {
             canvas_size: UVec2::splat(128),
-            pixel_scale: 4.0,
+            pixel_scale: 3.0,
         }
     }
 }

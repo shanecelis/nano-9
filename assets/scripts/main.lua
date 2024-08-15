@@ -39,6 +39,11 @@ function _init()
     -- place heart on top left of screen.
     h1.x = -64
     h1.y = 64
+    h2 = hearts:spr(1)
+    h2.index = 0
+    h2.anchor = { -1, 1 }
+    h2.y = 64
+    h2.x = -50
     -- clear the screen
     cls(1)
 end
@@ -51,7 +56,6 @@ function _draw()
     anim_speed = 8
     -- dt is the time since we last were here. Usually 1/60th of a second.
     dt = delta_time()
-
 
     -- Check if 'z' is pressed.
     if btnp(4) then
