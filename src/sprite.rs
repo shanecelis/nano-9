@@ -1,6 +1,7 @@
 
 use bevy::{
     ecs::system::SystemState,
+    sprite::Anchor,
     prelude::*,
 };
 
@@ -68,6 +69,7 @@ impl UserData for MySprite {
             Ok(())
         });
 
+
         fields.add_field_method_get("y", |ctx, this| {
             let world = ctx.get_world()?;
             let mut world = world.write();
@@ -75,7 +77,7 @@ impl UserData for MySprite {
                 SystemState::new(&mut world);
             let mut transforms = system_state.get_mut(&mut world);
             let transform = transforms.get_mut(this.0).unwrap();
-            Ok(-transform.translation.y)
+            Ok(transform.translation.y)
         });
 
         fields.add_field_method_set("y", |ctx, this, value: f32| {
@@ -85,10 +87,29 @@ impl UserData for MySprite {
                 SystemState::new(&mut world);
             let mut transforms = system_state.get_mut(&mut world);
             let mut transform = transforms.get_mut(this.0).unwrap();
-            transform.translation.y = -value;
+            transform.translation.y = value;
             Ok(())
         });
 
+        fields.add_field_method_get("z", |ctx, this| {
+            let world = ctx.get_world()?;
+            let mut world = world.write();
+            let mut system_state: SystemState<Query<&Transform>> = SystemState::new(&mut world);
+            let transforms = system_state.get(&mut world);
+            let transform = transforms.get(this.0).unwrap();
+            Ok(transform.translation.z)
+        });
+
+        fields.add_field_method_set("z", |ctx, this, value: f32| {
+            let world = ctx.get_world()?;
+            let mut world = world.write();
+            let mut system_state: SystemState<Query<&mut Transform>> =
+                SystemState::new(&mut world);
+            let mut transforms = system_state.get_mut(&mut world);
+            let mut transform = transforms.get_mut(this.0).unwrap();
+            transform.translation.z = value;
+            Ok(())
+        });
         fields.add_field_method_set("color", |ctx, this, value| {
             let world = ctx.get_world()?;
             let mut world = world.write();
@@ -150,6 +171,17 @@ impl UserData for MySprite {
             item.index = value;
             Ok(())
         });
+
+        fields.add_field_method_set("anchor", |ctx, this, value: [f32; 2]| {
+            let world = ctx.get_world()?;
+            let mut world = world.write();
+            let mut system_state: SystemState<Query<&mut Sprite>> =
+                SystemState::new(&mut world);
+            let mut query = system_state.get_mut(&mut world);
+            let mut item = query.get_mut(this.0).unwrap();
+            item.anchor = Anchor::Custom(Vec2::new(value[0] / 2.0, value[1] / 2.0));
+            Ok(())
+        });
     }
 
     fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
@@ -159,6 +191,17 @@ impl UserData for MySprite {
             world.despawn(this.0);
             Ok(())
         });
+        // methods.add_method_mut("set_anchor", |ctx, this, _: ()| {
+        // fields.add_field_method_set("anchor", |ctx, this, value: (f32, f32)| {
+        //     let world = ctx.get_world()?;
+        //     let mut world = world.write();
+        //     let mut system_state: SystemState<Query<&mut Sprite>> =
+        //         SystemState::new(&mut world);
+        //     let mut query = system_state.get_mut(&mut world);
+        //     let mut item = query.get_mut(this.0).unwrap();
+        //     item.anchor = Anchor::Custom(value.0, value.1);
+        //     Ok(())
+        // });
 
         // methods.add_meta_method(MetaMethod::Add, |_, this, value: i32| {
         //     Ok(this.0 + value)

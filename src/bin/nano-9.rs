@@ -17,9 +17,9 @@ fn setup(asset_server: Res<AssetServer>, mut commands: Commands,
     let script_path = "scripts/basic.lua";
     // let image = asset_server.load("images/oh no more goblins.png");
     // let layout = TextureAtlasLayout::from_grid(Vec2::splat(12.0), 24, 24, None, None);
-    let image = asset_server.load("images/Cat_Sprite.png");
-    let layout = TextureAtlasLayout::from_grid(Vec2::splat(32.0), 4, 8, None, None);
-    commands.insert_resource(Nano9SpriteSheet(image, texture_atlas_layouts.add(layout)));
+    // let image = asset_server.load("images/Cat_Sprite.png");
+    // let layout = TextureAtlasLayout::from_grid(Vec2::splat(32.0), 4, 8, None, None);
+    // commands.insert_resource(Nano9SpriteSheet(image, texture_atlas_layouts.add(layout)));
 
     commands.spawn(ScriptCollection::<LuaFile> {
         scripts: vec![Script::new(

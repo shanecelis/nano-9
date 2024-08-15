@@ -101,6 +101,20 @@ impl APIProvider for Nano9API {
                 .map_err(ScriptError::new_other)?,
             )
             .map_err(ScriptError::new_other)?;
+
+        ctx.globals()
+            .set(
+                "delta",
+                ctx.create_function(|ctx, _: ()| {
+                    let world = ctx.get_world()?;
+                    let mut world = world.write();
+                    let mut system_state: SystemState<Res<Time>> = SystemState::new(&mut world);
+                    let time = system_state.get(&world);
+                    Ok(time.delta_seconds())
+                })
+                .map_err(ScriptError::new_other)?,
+            )
+            .map_err(ScriptError::new_other)?;
         ctx.globals()
             .set(
                 "btn",

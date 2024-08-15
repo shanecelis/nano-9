@@ -88,17 +88,19 @@ pub fn setup_image(
     let handle = assets.add(image);
     commands.insert_resource(Nano9Screen(handle.clone()));
     let mut camera_bundle = Camera2dBundle::default();
-        camera_bundle.projection.scaling_mode = ScalingMode::FixedVertical(512.0);
+    // camera_bundle.projection.scaling_mode = ScalingMode::FixedVertical(512.0);
+    camera_bundle.projection.scaling_mode = ScalingMode::WindowSize(8.0);
+
     commands.spawn(camera_bundle);
     commands
         .spawn(SpriteBundle {
             transform: Transform::from_xyz(0.0, 0.0, -1.0),
             texture: handle,
             sprite: Sprite {
-                custom_size: Some(Vec2::new(
-                    settings.display_grid_dimensions.0 as f32,
-                    settings.display_grid_dimensions.1 as f32,
-                )),
+                // custom_size: Some(Vec2::new(
+                //     settings.display_grid_dimensions.0 as f32,
+                //     settings.display_grid_dimensions.1 as f32,
+                // )),
                 ..default()
             },
             ..default()
