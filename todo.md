@@ -4,16 +4,24 @@
 - [x] scale image with window
 - [x] implement cls()
 - implement tile map
+- title screen
 
 ## Gameplay
-- enemies+atacck+deafeted
-- Heart
+- [ ] enemies
+  - [ ] attack
+  - [ ] defeated
+- [ ] Heart
+  - [x] sprite
+  - [ ] health
 - Cat Scratch
 - Save spot
 - files
 - title screen
 - cutscene
 - boss
+
+## Bugs
+- [ ] fix double jump
 
 ## Assets
 - Pay $1 or $2 for slime if we use it.

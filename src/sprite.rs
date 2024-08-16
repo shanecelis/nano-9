@@ -38,7 +38,7 @@ impl Drop for MySprite {
 fn despawn_list_system(mut commands: Commands) {
     if let Some(list) = despawn_list() {
         for id in list.drain(..) {
-            commands.entity(id).despawn();
+            commands.get_entity(id).map(|mut e| e.despawn());
         }
     }
 }
@@ -199,7 +199,7 @@ impl UserData for MySprite {
     }
 
     fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
-        methods.add_method_mut("drop", |ctx, this, _: ()| {
+        methods.add_method_mut("despawn", |ctx, this, _: ()| {
             let world = ctx.get_world()?;
             let mut world = world.write();
             world.despawn(this.0);
