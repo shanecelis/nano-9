@@ -113,7 +113,11 @@ impl UserData for MySprite {
         fields.add_field_method_set("color", |ctx, this, value| {
             let world = ctx.get_world()?;
             let mut world = world.write();
-            let c = Nano9Palette::get_color(value, &mut world);
+            let c = if value == Value::Nil {
+                Color::WHITE
+            } else {
+                Nano9Palette::get_color(value, &mut world)
+            };
             let mut system_state: SystemState<Query<&mut Sprite>> = SystemState::new(&mut world);
             let mut query = system_state.get_mut(&mut world);
             let mut item = query.get_mut(this.0).unwrap();
@@ -180,6 +184,16 @@ impl UserData for MySprite {
             let mut query = system_state.get_mut(&mut world);
             let mut item = query.get_mut(this.0).unwrap();
             item.anchor = Anchor::Custom(Vec2::new(value[0] / 2.0, value[1] / 2.0));
+            Ok(())
+        });
+
+        fields.add_field_method_set("vis", |ctx, this, value: bool| {
+            let world = ctx.get_world()?;
+            let mut world = world.write();
+            let mut system_state: SystemState<Query<&mut Visibility>> = SystemState::new(&mut world);
+            let mut query = system_state.get_mut(&mut world);
+            let mut item = query.get_mut(this.0).unwrap();
+            *item = if value { Visibility::Visible } else { Visibility::Hidden };
             Ok(())
         });
     }

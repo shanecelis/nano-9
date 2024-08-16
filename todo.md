@@ -14,3 +14,6 @@
 - title screen
 - cutscene
 - boss
+
+## Assets
+- Pay $1 or $2 for slime if we use it.

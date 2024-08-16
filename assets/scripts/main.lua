@@ -17,6 +17,12 @@ animate = {
         count = 1,
     }
 }
+slime_animate = {
+    idle = {
+        index = 0,
+        count = 6,
+    }
+}
 ground = -64
 
 -- _init() is called once per load.
@@ -45,6 +51,19 @@ function _init()
     h2.anchor = { -1, 1 }
     h2.y = 64
     h2.x = -50
+
+    -- load slime
+    slime_idle = loadimg("images/slime/IdleSpritesheet.png")
+    slime_idle:set_grid(16,16,2,3)
+    s1 = slime_idle:spr(0)
+    s1.y = ground
+    s1.anchor = { 0, -1 }
+
+    slime_hit = loadimg("images/slime/HitSpritesheet.png")
+    slime_hit:set_grid(16,16,2,2)
+    s2 = slime_hit:spr(0)
+    s2.vis = false
+
     -- clear the screen
     cls(1)
 end
@@ -61,6 +80,13 @@ function _draw()
     -- Check if 'z' is pressed.
     if btnp(4) then
         scratch_start = t -- note cat scratch start time.
+        distance = math.abs( s.x -s1.x )
+        print("hit distance ", distance)
+        if distance <= 17.5 then
+            s1.color = 8
+        else
+            s1.color = nil
+        end
     end
 
     -- Check if 'x' is pressed.
@@ -104,4 +130,7 @@ function _draw()
     if is_in_air then
         s.y = s.y - speed * dt
     end
+
+    -- animate slime
+    s1.index = t * anim_speed % 6
 end
