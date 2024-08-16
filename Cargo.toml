@@ -7,7 +7,7 @@ edition = "2021"
 bevy = "0.13"
 # bevy = { version = "0.13", default-features = false, features = [ "bevy_winit", "bevy_asset", "bevy_render" ] }
 bevy_asset_loader = "0.20"
-bevy_mod_scripting = { version = "0.6.0", features = ["lua54", "lua_script_api"] }
+bevy_mod_scripting = { version = "0.6.0", features = ["lua54", "lua_script_api", "unsafe_lua_modules"] }
 bytemuck = "1.16.3"
 thiserror = "1.0.63"
 # bevy_pixel_buffer = "0.7.0"

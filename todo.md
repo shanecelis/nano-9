@@ -2,7 +2,7 @@
 ## Nano-9
 - [ ] add full screen key
 - [x] scale image with window
-- implement cls()
+- [x] implement cls()
 - implement tile map
 
 ## Gameplay
