@@ -1,6 +1,8 @@
 -- main.lua
 --
 -- A great cat game
+require("assets/scripts/actor")
+require("assets/scripts/slime")
 
 speed = 30
 animate = {
@@ -21,9 +23,18 @@ slime_animate = {
     idle = {
         index = 0,
         count = 6,
+    },
+    hit = {
+        index = 7,
+        count = 4,
+    },
+    bounce = {
+        index = 14,
+        count = 7,
     }
 }
 ground = -64
+
 
 -- _init() is called once per load.
 function _init()
@@ -53,23 +64,59 @@ function _init()
     h2.x = -50
 
     -- load slime
-    slime_idle = loadimg("images/slime/IdleSpritesheet.png")
-    slime_idle:set_grid(16,16,2,3)
-    s1 = slime_idle:spr(0)
+    slime_image = loadimg("images/slime/slime.png")
+    slime_image:set_grid(16,16,7,3)
+
+    s1 = slime_image:spr(0)
     s1.y = ground
     s1.anchor = { 0, -1 }
 
-    slime_hit = loadimg("images/slime/HitSpritesheet.png")
-    slime_hit:set_grid(16,16,2,2)
-    s2 = slime_hit:spr(0)
-    s2.vis = false
+    s2 = actor:new {
+        sprite = slime_image:spr(0),
+        anims = {
+            idle = {
+                ticks = 8,
+                frames = {0,1,2,3,4,5},
+                -- index = 0,
+                -- count = 6,
+            },
+            hit = {
+                ticks = 3,
+                frames = {7,8,9,10},
+                -- index = 7,
+                -- count = 4,
+            },
+            bounce = {
+                ticks = 3,
+                frames = {14,15,16,17,18,19,20},
+                -- index = 14,
+                -- count = 7,
+            }
+        }
+    }
+    s2.sprite.x = 22
+    s2.sprite.y = ground
+    s2.sprite.anchor = { 0, -1 }
+    s2:set_anim("idle")
+
+    s3 = slime:new {}
+    s3.sprite.x = 44
+    s3.sprite.y = ground
 
     -- clear the screen
     cls(1)
 end
 
--- _draw() is called once per frame, or 60 times a second.
 function _draw()
+    s2:draw()
+    s3:draw()
+
+end
+
+-- _draw() is called once per frame, or 60 times a second.
+function _update()
+    s2:update()
+    s3:update()
     -- t is time in seconds.
     t = time()
     -- anim_speed is our animation speed. How many frames per second?
@@ -80,12 +127,12 @@ function _draw()
     -- Check if 'z' is pressed.
     if btnp(4) then
         scratch_start = t -- note cat scratch start time.
-        distance = math.abs( s.x -s1.x )
+        distance = math.abs( s.x -s1.sprite.x )
         print("hit distance ", distance)
         if distance <= 17.5 then
-            s1.color = 8
+            -- s1.color = 8
         else
-            s1.color = nil
+            -- s1.color = nil
         end
     end
 
