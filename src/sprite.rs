@@ -15,23 +15,11 @@ use crate::{
 };
 use std::sync::OnceLock;
 
-fn despawn_list() -> Option<&'static mut Vec<Entity>> {
+pub(crate) fn despawn_list() -> Option<&'static mut Vec<Entity>> {
     static mut MEM: OnceLock<Vec<Entity>> = OnceLock::new();
     unsafe {
         let _ = MEM.get_or_init(|| Vec::new());
         MEM.get_mut()
-    }
-}
-
-pub struct MySprite(pub Entity);
-
-impl Drop for MySprite {
-    fn drop(&mut self) {
-        if let Some(list) = despawn_list() {
-            list.push(self.0);
-        } else {
-            warn!("Unable to despawn sprite {:?}.", self.0);
-        }
     }
 }
 
@@ -46,6 +34,19 @@ fn despawn_list_system(mut commands: Commands) {
 pub(crate) fn plugin(app: &mut App) {
     app.add_systems(PostUpdate, despawn_list_system);
 }
+
+pub struct MySprite(pub Entity);
+
+impl Drop for MySprite {
+    fn drop(&mut self) {
+        if let Some(list) = despawn_list() {
+            list.push(self.0);
+        } else {
+            warn!("Unable to despawn sprite {:?}.", self.0);
+        }
+    }
+}
+
 
 impl UserData for MySprite {
     fn add_fields<'lua, F: UserDataFields<'lua, Self>>(fields: &mut F) {

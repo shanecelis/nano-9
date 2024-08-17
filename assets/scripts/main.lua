@@ -156,7 +156,9 @@ function _draw()
     -- Check if 'z' is pressed.
     if btnp(4) then
         scratch_start = t -- note cat scratch start time.
-        meow_sound:sfx()
+        if not ((last_meow or {}).is_playing) then
+            last_meow = meow_sound:sfx()
+        end
         for i,slime in ipairs(slimes) do
             distance = math.abs( s.x -slime.sprite.x )
             print("hit distance ", distance)

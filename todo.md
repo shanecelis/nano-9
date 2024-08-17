@@ -1,11 +1,11 @@
 # TODO
 ## Nano-9
-- [ ] add full screen key
+- [x] add full screen key (alt-enter)
 - [x] scale image with window
 - [x] implement cls()
 - [x] audio sfx
 - [ ] audio music
-- [ ] audio control
+- [x] audio control
 - [ ] implement tile map
 - title screen
 
