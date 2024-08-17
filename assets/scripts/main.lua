@@ -45,7 +45,7 @@ ground = -64
 
 function slime_new()
     -- load slime
-    slime_idle = loadimg("images/slime/slime.png")
+    slime_idle = image:load("images/slime/slime.png")
     slime_idle:set_grid(16,16,7,3)
     local s1 = slime_idle:spr(0)
     s1.y = ground
@@ -92,7 +92,7 @@ function slime_hit(s)
     else
         -- We dead.
         --Play death animation.
-        slime_death = loadimg("images/slime/death.png")
+        slime_death = image:load("images/slime/death.png")
         slime_death:set_grid(20,20,7,1)
         local death_sprite = slime_death:spr(0)
         death_sprite.anchor = { 0, -1 }
@@ -110,7 +110,7 @@ function _init()
 
     meow_sound = audio:load("audio/Cat Meow Short 09 .ogg")
     -- load the cat sprites
-    cat_sprites = loadimg("images/Cat_Sprite.png")
+    cat_sprites = image:load("images/Cat_Sprite.png")
     -- set up the sprite sheet
     cat_sprites:set_grid(32, 32, 4, 8)
     -- create the cat sprite
@@ -119,7 +119,7 @@ function _init()
     s.anchor = { 0, -0.8 } -- move the cat sprite by its bottom-center.
 
     -- load the hearts image
-    hearts = loadimg("images/heart-of-a-thousand-miles.png");
+    hearts = image:load("images/heart-of-a-thousand-miles.png");
     -- set up the sprite sheet
     hearts:set_grid(12, 12, 10, 10)
     -- create the first heart sprite

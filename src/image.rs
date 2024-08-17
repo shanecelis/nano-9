@@ -15,6 +15,34 @@ use crate::{
 };
 
 #[derive(Clone)]
+pub struct N9ImageLoader;
+impl FromLua<'_> for N9ImageLoader {
+    fn from_lua(value: Value, _: &Lua) -> mlua::Result<Self> {
+        match value {
+            Value::UserData(ud) => Ok(ud.borrow::<Self>()?.clone()),
+            _ => unreachable!(),
+        }
+    }
+}
+
+impl UserData for N9ImageLoader {
+
+    fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
+
+        methods.add_method_mut("load", |ctx, this, path: String| {
+            let world = ctx.get_world()?;
+            let mut world = world.write();
+            let mut system_state: SystemState<(
+                Res<AssetServer>,
+            )> = SystemState::new(&mut world);
+            let (server,) = system_state.get(& world);
+            let handle: Handle<Image> = server.load(&path);
+            Ok(N9Image { handle, layout: None })
+        });
+    }
+}
+
+#[derive(Clone)]
 pub struct N9Image {
     pub handle: Handle<Image>,
     pub layout: Option<Handle<TextureAtlasLayout>>,

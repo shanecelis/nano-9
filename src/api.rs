@@ -19,6 +19,7 @@ use crate::{
     DrawState,
     N9Error,
     N9Image,
+    N9ImageLoader,
     N9AudioLoader,
     Nano9Palette,
     Nano9Screen,
@@ -76,6 +77,12 @@ impl APIProvider for Nano9API {
             )
             .map_err(ScriptError::new_other)?;
 
+        ctx.globals()
+            .set(
+                "image",
+                N9ImageLoader,
+            )
+            .map_err(ScriptError::new_other)?;
         ctx.globals()
             .set(
                 "pset",
@@ -184,24 +191,6 @@ impl APIProvider for Nano9API {
                     let image = images.get_mut(&screen.0).unwrap();
                     let _ = image.set_pixels(|_, _| c);
                     Ok(())
-                })
-                .map_err(ScriptError::new_other)?,
-            )
-            .map_err(ScriptError::new_other)?;
-
-        ctx.globals()
-            .set(
-                "loadimg",
-                ctx.create_function(|ctx, path: String| {
-                    let world = ctx.get_world()?;
-                    let mut world = world.write();
-                    let mut system_state: SystemState<(
-                        Res<AssetServer>,
-                        )> = SystemState::new(&mut world);
-                    let (server,) = system_state.get(& world);
-                    let handle: Handle<Image> = server.load(&path);
-                    Ok(N9Image { handle, layout: None })
-                    // Ok(())
                 })
                 .map_err(ScriptError::new_other)?,
             )
