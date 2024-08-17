@@ -10,8 +10,7 @@ use bevy::{
         texture::ImageSampler,
     },
     utils::Duration,
-    window::PresentMode,
-    window::{PrimaryWindow, WindowResized, WindowResolution},
+    window::{PresentMode, WindowMode, PrimaryWindow, WindowResized, WindowResolution},
 };
 
 use bevy_asset_loader::prelude::*;
@@ -104,11 +103,24 @@ pub fn setup_image(
         .insert(Nano9Sprite);
 }
 
+pub fn fullscreen_key(input: Res<ButtonInput<KeyCode>>,
+                       mut primary_windows: Query<&mut Window, With<PrimaryWindow>>) {
+    if input.just_pressed(KeyCode::Enter) && input.any_pressed([KeyCode::AltLeft, KeyCode::AltRight]) {
+        use WindowMode::*;
+        let mut primary_window = primary_windows.single_mut();
+        primary_window.mode = match primary_window.mode {
+            Windowed => Fullscreen,
+            _ => Windowed,
+        }
+    }
+}
+
 pub fn sync_window_size(
     mut resize_event: EventReader<WindowResized>,
-    mut settings: ResMut<Settings>,
-    mut query: Query<&mut Sprite, With<Nano9Sprite>>,
+    mut settings: ResMut<N9Settings>,
+    // mut query: Query<&mut Sprite, With<Nano9Sprite>>,
     primary_windows: Query<&Window, With<PrimaryWindow>>,
+    mut orthographic: Query<&mut OrthographicProjection, With<Camera>>
 ) {
     if let Some(e) = resize_event
         .read()
@@ -116,29 +128,42 @@ pub fn sync_window_size(
         .last()
     {
         let primary_window = primary_windows.get(e.window).unwrap();
-        settings.display_grid_dimensions = (
-            primary_window.physical_width(),
-            primary_window.physical_height(),
-        );
 
-        // resize all game's of life, retain aspect ratio and fit the entire game in the window
-        for mut sprite in query.iter_mut() {
-            let scale = if settings.physical_grid_dimensions.0 > settings.physical_grid_dimensions.1
-            {
-                // horizontal is longer
-                settings.display_grid_dimensions.1 as f32
-                    / settings.physical_grid_dimensions.1 as f32
-            } else {
-                // vertical is longer
-                settings.display_grid_dimensions.0 as f32
-                    / settings.physical_grid_dimensions.0 as f32
-            };
+        //let window_size = primary_window.physical_size().as_vec2();
+        let window_scale = primary_window.scale_factor();
+        let window_size = Vec2::new(
+            primary_window.physical_width() as f32,
+            primary_window.physical_height() as f32,
+        ) / window_scale;
+        let mut orthographic = orthographic.single_mut();
 
-            sprite.custom_size = Some(Vec2::new(
-                (settings.physical_grid_dimensions.0 as f32) * scale,
-                (settings.physical_grid_dimensions.1 as f32) * scale,
-            ));
-        }
+        let canvas_size = settings.canvas_size.as_vec2();
+        let canvas_aspect = canvas_size.x / canvas_size.y;
+        let window_aspect = window_size.x / window_size.y;
+
+        let new_scale =
+            // Canvas is longer than it is tall. Fit the width first.
+            (window_size.y / canvas_size.y).min(window_size.x / canvas_size.x);
+        // info!("window_size {window_size}");
+        // info!("new_scale {new_scale}");
+        settings.pixel_scale = new_scale;
+        orthographic.scaling_mode = ScalingMode::WindowSize(new_scale);
+
+        // let scale = if settings.canvas_size.x > settings.canvas_size.y
+        // {
+        //     // horizontal is longer
+        //     settings.display_grid_dimensions.1 as f32
+        //         / settings.canvas_size.y as f32
+        // } else {
+        //     // vertical is longer
+        //     settings.display_grid_dimensions.0 as f32
+        //         / settings.canvas_size.x as f32
+        // };
+
+        //     sprite.custom_size = Some(Vec2::new(
+        //         (settings.canvas_size.x as f32) * scale,
+        //         (settings.canvas_size.y as f32) * scale,
+        //     ));
     }
 }
 
@@ -222,12 +247,12 @@ impl Plugin for Nano9Plugin {
                         // Turn off vsync to maximize CPU/GPU usage
                         present_mode: PresentMode::AutoVsync,
                         // Let's not allow resizing.
-                        resize_constraints: WindowResizeConstraints {
-                            min_width: resolution.x,
-                            max_width: resolution.x,
-                            min_height: resolution.y,
-                            max_height: resolution.y,
-                        },
+                        // resize_constraints: WindowResizeConstraints {
+                        //     min_width: resolution.x,
+                        //     max_width: resolution.x,
+                        //     min_height: resolution.y,
+                        //     max_height: resolution.y,
+                        // },
                         ..default()
                     }),
                     ..default()
@@ -239,11 +264,13 @@ impl Plugin for Nano9Plugin {
         .init_resource::<DrawState>()
         .add_plugins(ScriptingPlugin)
         .add_plugins(crate::plugin)
+
         .add_systems(OnExit(screens::Screen::Loading), setup_image)
         // .add_systems(OnEnter(screens::Screen::Playing), send_init)
         // .add_systems(PreUpdate, send_init.run_if(on_asset_modified::<LuaFile>()))
         .add_systems(PreUpdate, send_init.run_if(on_event::<ScriptLoaded>()))
-        // .add_systems(Update, sync_window_size)
+        .add_systems(Update, sync_window_size)
+        .add_systems(Update, fullscreen_key)
         .add_systems(
             FixedUpdate,
             (send_update, send_draw)

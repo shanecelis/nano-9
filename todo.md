@@ -3,13 +3,16 @@
 - [ ] add full screen key
 - [x] scale image with window
 - [x] implement cls()
-- implement tile map
+- [x] audio sfx
+- [ ] audio music
+- [ ] audio control
+- [ ] implement tile map
 - title screen
 
 ## Gameplay
-- [ ] enemies
-  - [ ] attack
-  - [ ] defeated
+- [x] enemies
+  - [x] attack
+  - [x] defeated
 - [ ] Heart
   - [x] sprite
   - [ ] health
