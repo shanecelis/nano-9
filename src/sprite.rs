@@ -47,7 +47,6 @@ impl Drop for MySprite {
     }
 }
 
-
 impl UserData for MySprite {
     fn add_fields<'lua, F: UserDataFields<'lua, Self>>(fields: &mut F) {
         fields.add_field_method_get("x", |ctx, this| {

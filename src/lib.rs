@@ -10,12 +10,14 @@ mod plugin;
 mod assets;
 mod image;
 mod audio;
+mod text;
 pub mod screens;
 pub use plugin::*;
 pub use sprite::*;
 pub use image::*;
 pub use palette::*;
 pub use audio::*;
+pub use text::*;
 
 #[derive(thiserror::Error, Debug)]
 pub enum N9Error {

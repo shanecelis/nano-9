@@ -107,6 +107,7 @@ end
 
 -- _init() is called once per load.
 function _init()
+    text.default:print("Hello world")
 
     meow_sound = audio:load("audio/Cat Meow Short 09 .ogg")
     -- load the cat sprites

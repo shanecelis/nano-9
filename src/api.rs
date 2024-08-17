@@ -19,6 +19,8 @@ use crate::{
     DrawState,
     N9Error,
     N9Image,
+    N9TextLoader,
+    N9TextStyle,
     N9ImageLoader,
     N9AudioLoader,
     Nano9Palette,
@@ -81,6 +83,13 @@ impl APIProvider for Nano9API {
             .set(
                 "image",
                 N9ImageLoader,
+            )
+            .map_err(ScriptError::new_other)?;
+
+        ctx.globals()
+            .set(
+                "text",
+                N9TextLoader,
             )
             .map_err(ScriptError::new_other)?;
         ctx.globals()
