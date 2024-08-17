@@ -25,3 +25,4 @@
 
 ## Assets
 - Pay $1 or $2 for slime if we use it.
+- Pay $2 for [cat sounds](https://eddie-yu.itch.io/mimi-the-cat-sfx).

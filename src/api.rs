@@ -19,6 +19,7 @@ use crate::{
     DrawState,
     N9Error,
     N9Image,
+    N9AudioLoader,
     Nano9Palette,
     Nano9Screen,
     Nano9SpriteSheet,
@@ -67,6 +68,13 @@ impl APIProvider for Nano9API {
         // check the Rlua documentation for more details
 
         let ctx = ctx.get_mut().unwrap();
+
+        ctx.globals()
+            .set(
+                "audio",
+                N9AudioLoader,
+            )
+            .map_err(ScriptError::new_other)?;
 
         ctx.globals()
             .set(

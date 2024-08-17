@@ -9,11 +9,13 @@ mod pixel;
 mod plugin;
 mod assets;
 mod image;
+mod audio;
 pub mod screens;
 pub use plugin::*;
 pub use sprite::*;
 pub use image::*;
 pub use palette::*;
+pub use audio::*;
 
 #[derive(thiserror::Error, Debug)]
 pub enum N9Error {

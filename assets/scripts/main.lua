@@ -1,7 +1,7 @@
 -- main.lua
 --
 -- An ok cat game
-require("utils")
+require("assets/scripts/utils")
 -- walk speed
 speed = 30
 -- anim_speed is our animation speed. How many frames per second?
@@ -107,6 +107,8 @@ end
 
 -- _init() is called once per load.
 function _init()
+
+    meow_sound = audio:load("audio/Cat Meow Short 09 .ogg")
     -- load the cat sprites
     cat_sprites = loadimg("images/Cat_Sprite.png")
     -- set up the sprite sheet
@@ -154,6 +156,7 @@ function _draw()
     -- Check if 'z' is pressed.
     if btnp(4) then
         scratch_start = t -- note cat scratch start time.
+        meow_sound:sfx()
         for i,slime in ipairs(slimes) do
             distance = math.abs( s.x -slime.sprite.x )
             print("hit distance ", distance)
