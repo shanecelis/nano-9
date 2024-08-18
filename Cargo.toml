@@ -21,5 +21,6 @@ test = false
 bench = false
 
 [patch.crates-io]
-bevy_mod_scripting = { path = "../bevy_mod_scripting" }
+# bevy_mod_scripting = { path = "../bevy_mod_scripting" }
+bevy_mod_scripting = { git = "https://github.com/shanecelis/bevy_mod_scripting.git", branch = "propogate_script_error" }
 # bevy_pixel_buffer = { path = "../bevy_pixel_buffer" }

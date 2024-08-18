@@ -7,16 +7,19 @@
 - [ ] audio music
 - [x] audio control
 - [ ] implement tile map
-- title screen
+- [x] show errors 
 
 ## Gameplay
+- [ ] title screen
 - [x] enemies
-  - [x] attack
+  - [x] attackable
   - [x] defeated
+  - [ ] attacking
 - [ ] Heart
   - [x] sprite
   - [ ] health
 - Cat Scratch
+  - [ ] fix butt scratch
 - Save spot
 - files
 - title screen
