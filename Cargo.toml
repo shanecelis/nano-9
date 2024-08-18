@@ -20,5 +20,6 @@ name = "nano-9"
 test = false
 bench = false
 
-# [patch.crates-io]
+[patch.crates-io]
+bevy_mod_scripting = { path = "../bevy_mod_scripting" }
 # bevy_pixel_buffer = { path = "../bevy_pixel_buffer" }

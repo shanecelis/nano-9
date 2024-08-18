@@ -89,11 +89,6 @@ pub fn setup_image(
 
     let handle = assets.add(image);
     commands.insert_resource(Nano9Screen(handle.clone()));
-    let mut camera_bundle = Camera2dBundle::default();
-    // camera_bundle.projection.scaling_mode = ScalingMode::FixedVertical(512.0);
-    camera_bundle.projection.scaling_mode = ScalingMode::WindowSize(settings.pixel_scale);
-
-    commands.spawn(camera_bundle);
     commands
         .spawn(SpriteBundle {
             transform: Transform::from_xyz(0.0, 0.0, -1.0),
@@ -101,6 +96,18 @@ pub fn setup_image(
             ..default()
         })
         .insert(Nano9Sprite);
+}
+
+fn spawn_camera(mut commands: Commands,
+    settings: Res<N9Settings>,
+) {
+
+    let mut camera_bundle = Camera2dBundle::default();
+    // camera_bundle.projection.scaling_mode = ScalingMode::FixedVertical(512.0);
+    camera_bundle.projection.scaling_mode = ScalingMode::WindowSize(settings.pixel_scale);
+
+    commands.spawn((camera_bundle,
+        IsDefaultUiCamera));
 }
 
 pub fn fullscreen_key(input: Res<ButtonInput<KeyCode>>,
@@ -262,9 +269,9 @@ impl Plugin for Nano9Plugin {
         .insert_resource(Time::<Fixed>::from_seconds(UPDATE_FREQUENCY.into()))
         .init_resource::<N9Settings>()
         .init_resource::<DrawState>()
-        .add_plugins(ScriptingPlugin)
         .add_plugins(crate::plugin)
 
+        .add_systems(Startup, spawn_camera)
         .add_systems(OnExit(screens::Screen::Loading), setup_image)
         // .add_systems(OnEnter(screens::Screen::Playing), send_init)
         // .add_systems(PreUpdate, send_init.run_if(on_asset_modified::<LuaFile>()))

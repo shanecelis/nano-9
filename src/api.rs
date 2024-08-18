@@ -49,11 +49,13 @@ impl<T: Asset + Clone> UserData for MyHandle<T> {}
 
 pub fn plugin(app: &mut App) {
     app
+        .add_plugins(ScriptingPlugin)
         .add_systems(FixedUpdate, script_event_handler::<LuaScriptHost<()>, 0, 1>)
         // .register_foreign_lua_type::<Handle<Image>>()
         .add_script_host::<LuaScriptHost<()>>(PostUpdate)
         .add_api_provider::<LuaScriptHost<()>>(Box::new(LuaCoreBevyAPIProvider))
-        .add_api_provider::<LuaScriptHost<()>>(Box::new(Nano9API));
+        .add_api_provider::<LuaScriptHost<()>>(Box::new(Nano9API))
+        .add_script_handler::<LuaScriptHost<()>, 0, 0>(PostUpdate);
 }
 
 

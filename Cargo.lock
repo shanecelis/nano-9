@@ -566,8 +566,6 @@ dependencies = [
 [[package]]
 name = "bevy_event_priority"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f7d00899c999c00c3e7b1e09f2c117791ff0e0d17567601c98a3d3b49b06f3c5"
 dependencies = [
  "bevy",
 ]
@@ -771,8 +769,6 @@ dependencies = [
 [[package]]
 name = "bevy_mod_scripting"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e2e828b09cf9c1a692220c860ff2fe6467e2de702658474fc5909acf7e9df73d"
 dependencies = [
  "bevy",
  "bevy_mod_scripting_core",
@@ -783,8 +779,6 @@ dependencies = [
 [[package]]
 name = "bevy_mod_scripting_common"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f8a13d34f4ac5c5477baeab08d80817529af3d5fc06fa506ede9c52a190de35"
 dependencies = [
  "convert_case",
  "darling",
@@ -801,8 +795,6 @@ dependencies = [
 [[package]]
 name = "bevy_mod_scripting_core"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "73a4737b51839114a48c2160266bdd90de2a465214e8682f6ab52d5edc337c86"
 dependencies = [
  "anyhow",
  "bevy",
@@ -815,8 +807,6 @@ dependencies = [
 [[package]]
 name = "bevy_mod_scripting_lua"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "389d6eaefacccd4bd6c9c1efa22cfd9cca9c37829623ad65ba1558590e8e4dca"
 dependencies = [
  "anyhow",
  "bevy",
@@ -829,8 +819,6 @@ dependencies = [
 [[package]]
 name = "bevy_mod_scripting_lua_derive"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0351521a44b48c585d55137ac57606b8ebbd9f93636e8df2423f4c0bc5cabaf6"
 dependencies = [
  "bevy_mod_scripting_common",
  "convert_case",
@@ -989,8 +977,6 @@ dependencies = [
 [[package]]
 name = "bevy_script_api"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a7e70f33706080169777463b9b7d53701ca23ca9e01f43fce6046a0d0dc62e51"
 dependencies = [
  "allocator-api2",
  "bevy",
