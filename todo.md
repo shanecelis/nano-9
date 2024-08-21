@@ -15,7 +15,7 @@
   - [x] attackable
   - [x] defeated
   - [ ] attacking
-  - [ ] fix overkill
+  - [x] fix overkill
 - [ ] Heart
   - [x] sprite
   - [ ] health

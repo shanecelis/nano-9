@@ -64,9 +64,9 @@ function slime_hit(s)
     if s.health > 0 then
         s.cur_anim = "Hit"
         s.anim_start = time()
-    else
+    elseif not s.dead then
         -- We dead.
-        --Play death animation.
+        -- Play death animation.
         slime_death = image:load("images/slime/death.png")
         slime_death:set_grid(20,20,7,1)
         local death_sprite = slime_death:spr(0)
@@ -77,5 +77,6 @@ function slime_hit(s)
         s.sprite = death_sprite
         s.cur_anim = "death"
         s.anim_start = time()
+        s.dead = true
     end
 end

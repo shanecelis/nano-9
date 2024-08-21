@@ -92,19 +92,20 @@ function _draw()
             last_meow = meow_sound:sfx()
         end
         for i,slime in ipairs(slimes) do
-            distance = math.abs( s.x -slime.sprite.x )
+            paw_x = s.x + 16
+            distance = math.abs( paw_x - slime.sprite.x )
             print("hit distance ", distance)
-            if distance <= 17.5 then
+            if distance <= 1.5 then
                 slime_hit(slime)
             end
         end
     end
 
     -- Check if 'x' is pressed.
-    if btnp(5) then
-        jump_start = t -- note cat scratch start time.
-        s.y = s.y + 20
-    end
+    --if btnp(5) then
+        --jump_start = t -- note cat scratch start time.
+        --s.y = s.y + 20
+        -- end
 
     if scratch_start then
         -- cat is scratching
