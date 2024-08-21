@@ -1,0 +1,11 @@
+#!/bin/bash
+# mp3-to-ogg
+
+if [ $# -ne 2 ]; then
+    echo "usage: mp3-to-ogg <in.mp3> <out.ogg>" >&2;
+    exit 1;
+fi
+
+wav_file="$(mktemp)";
+mpg123 -w "$wav_file" "$1" && oggenc "$wav_file" -o "$2"
+rm "$(mktemp)";
