@@ -79,6 +79,18 @@ impl UserData for N9Audio {
             }).id();
             Ok(N9Sound(id))
         });
+        methods.add_method_mut("play_loop", |ctx, this, _: ()| {
+            let world = ctx.get_world()?;
+            let mut world = world.write();
+            let id = world.spawn(AudioBundle {
+                source: this.handle.clone(),
+                settings: PlaybackSettings {
+                    mode: PlaybackMode::Loop,
+                    ..default()
+                }
+            }).id();
+            Ok(N9Sound(id))
+        });
     }
 }
 

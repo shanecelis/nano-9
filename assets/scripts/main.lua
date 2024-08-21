@@ -39,7 +39,7 @@ animate = {
 function _init()
     --text.default:print("Hello world")
     music = audio:load("music/Comfortable Mystery.ogg")
-    m = music:sfx()
+    m = music:play_loop()
     meow_sound = audio:load("audio/Cat Meow Short 09 .ogg")
     -- load the cat sprites
     cat_sprites = image:load("images/Cat_Sprite.png")

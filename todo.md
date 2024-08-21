@@ -4,7 +4,7 @@
 - [x] scale image with window
 - [x] implement cls()
 - [x] audio sfx
-- [ ] audio music
+- [x] audio music
 - [x] audio control
 - [ ] implement tile map
 - [x] show errors
@@ -20,10 +20,11 @@
   - [x] sprite
   - [ ] health
   - [ ] retry button
-  - [ ] cattails
+  - [x] cattails
 - Cat
   - [ ] fix butt scratch
   - [ ] fix double jump
+  - [ ] vary meows
 - Save spot
 - files
 - title screen
