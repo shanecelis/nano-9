@@ -41,7 +41,7 @@ impl Nano9Palette {
                 images.get(&palette.0)
                       .and_then(|pal| pal.get_pixel(n as usize).ok()).unwrap_or(draw_state.pen)
             }
-            _ => todo!(),
+            _ => draw_state.pen
         }
     }
 }
