@@ -77,7 +77,7 @@ fn spawn_error_message_layout(mut commands: Commands) {
             parent.spawn((NodeBundle {
                     // visibility: Visibility::Hidden,
                     style: Style {
-                        // flex_direction: FlexDirection::Row,
+                        flex_direction: FlexDirection::Column,
                         // flex_grow: 1.,
                         padding: UiRect {
                             top: PADDING,
