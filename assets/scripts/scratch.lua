@@ -1,3 +1,1 @@
-
-print(features.jump)
-print(features["up_down"])
+text:print("Hello, World!")

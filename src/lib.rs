@@ -38,6 +38,7 @@ pub(crate) fn plugin(app: &mut App) {
         sprite::plugin,
         palette::plugin,
         error::plugin,
+        text::plugin,
         // audio::plugin,
     ));
 
