@@ -7,11 +7,11 @@ use bevy_mod_scripting::lua::prelude::tealr::mlu::mlua::{
     UserData, UserDataFields, UserDataMethods,
 };
 use bevy_mod_scripting::prelude::*;
-// use bevy_pixel_buffer::prelude::*;
 use crate::{
     api::MyHandle,
     MySprite,
     palette::Nano9Palette,
+    pixel::PixelAccess,
 };
 
 #[derive(Clone)]
@@ -26,9 +26,7 @@ impl FromLua<'_> for N9ImageLoader {
 }
 
 impl UserData for N9ImageLoader {
-
     fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
-
         methods.add_method_mut("load", |ctx, this, path: String| {
             let world = ctx.get_world()?;
             let mut world = world.write();
@@ -47,7 +45,6 @@ pub struct N9Image {
     pub handle: Handle<Image>,
     pub layout: Option<Handle<TextureAtlasLayout>>,
 }
-
 
 impl FromLua<'_> for N9Image {
     fn from_lua(value: Value, _: &Lua) -> mlua::Result<Self> {
@@ -69,7 +66,6 @@ impl UserData for N9Image {
     fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
 
         methods.add_method_mut("set_grid", |ctx, this, (width, height, columns, rows): (f32, f32, usize, usize)| {
-
             let world = ctx.get_world()?;
             let mut world = world.write();
             let mut system_state: SystemState<ResMut<Assets<TextureAtlasLayout>>> =
@@ -104,5 +100,32 @@ impl UserData for N9Image {
                         )).id()))
             }
         });
+
+        methods.add_method_mut("set_pixel", |ctx, this, (x, y, c): (f32, f32, Value)| {
+            let world = ctx.get_world()?;
+            let mut world = world.write();
+            let color = Nano9Palette::get_color(c, &mut world);
+            let mut system_state: SystemState<(
+                ResMut<Assets<Image>>,
+            )> = SystemState::new(&mut world);
+            let (mut images,) = system_state.get_mut(&mut world);
+            let image = images.get_mut(&this.handle).unwrap();
+            let height = image.texture_descriptor.size.height;
+            let _ = image.set_pixel((x as usize, (height as f32 - y) as usize), color);
+            Ok(())
+        });
+
+        // methods.add_method("get_pixel", |ctx, this, (x, y, c): (f32, f32, Value)| {
+        //     let world = ctx.get_world()?;
+        //     let mut world = world.write();
+        //     let color = Nano9Palette::get_color(c, &mut world);
+        //     let mut system_state: SystemState<(
+        //         ResMut<Assets<Image>>,
+        //     )> = SystemState::new(&mut world);
+        //     let (images) = system_state.get(&mut world);
+        //     let image = images.get(&this.handle).unwrap();
+        //     let color = image.get_pixel((x as usize, y as usize));
+        //     Ok(())
+        // });
     }
 }

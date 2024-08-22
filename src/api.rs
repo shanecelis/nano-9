@@ -46,16 +46,35 @@ impl<T: Asset + Clone> FromLua<'_> for MyHandle<T> {
 
 impl<T: Asset + Clone> UserData for MyHandle<T> {}
 
+// type N9Arg = ();
+
+#[derive(Clone, Default)]
+pub enum N9Arg {
+    #[default]
+    None,
+    ImagePair { name: String, image: N9Image }
+}
+
+impl UserData for N9Arg { }
+
+impl FromLua<'_> for N9Arg {
+    fn from_lua(value: Value, _: &Lua) -> mlua::Result<Self> {
+        match value {
+            Value::UserData(ud) => Ok(ud.borrow::<Self>()?.clone()),
+            _ => unreachable!(),
+        }
+    }
+}
 
 pub fn plugin(app: &mut App) {
     app
         .add_plugins(ScriptingPlugin)
-        .add_systems(FixedUpdate, script_event_handler::<LuaScriptHost<()>, 0, 1>)
+        .add_systems(FixedUpdate, script_event_handler::<LuaScriptHost<N9Arg>, 0, 1>)
         // .register_foreign_lua_type::<Handle<Image>>()
-        .add_script_host::<LuaScriptHost<()>>(PostUpdate)
-        .add_api_provider::<LuaScriptHost<()>>(Box::new(LuaCoreBevyAPIProvider))
-        .add_api_provider::<LuaScriptHost<()>>(Box::new(Nano9API))
-        .add_script_handler::<LuaScriptHost<()>, 0, 0>(PostUpdate);
+        .add_script_host::<LuaScriptHost<N9Arg>>(PostUpdate)
+        .add_api_provider::<LuaScriptHost<N9Arg>>(Box::new(LuaCoreBevyAPIProvider))
+        .add_api_provider::<LuaScriptHost<N9Arg>>(Box::new(Nano9API))
+        .add_script_handler::<LuaScriptHost<N9Arg>, 0, 0>(PostUpdate);
 }
 
 
@@ -94,6 +113,25 @@ impl APIProvider for Nano9API {
                 N9TextLoader,
             )
             .map_err(ScriptError::new_other)?;
+
+        ctx.globals()
+            .set(
+                "_set_global",
+                ctx.create_function(|ctx, (arg): (N9Arg)| {
+                    if let N9Arg::ImagePair { name, image } = arg {
+                        warn!("set global {name}");
+                        ctx.globals().set(
+                            name,
+                            image)
+                    } else {
+                        // XXX: This should be an error.
+                        Ok(())
+                    }
+                })
+                .map_err(ScriptError::new_other)?,
+            )
+            .map_err(ScriptError::new_other)?;
+
         ctx.globals()
             .set(
                 "pset",

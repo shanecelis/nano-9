@@ -21,7 +21,9 @@ use bevy_mod_scripting::{
 // use bevy_pixel_buffer::prelude::*;
 use crate::{
     assets::{ImageHandles},
+    api::N9Arg,
     screens,
+    N9Image,
 };
 
 #[derive(AssetCollection, Resource)]
@@ -92,10 +94,24 @@ pub fn setup_image(
     commands
         .spawn(SpriteBundle {
             transform: Transform::from_xyz(0.0, 0.0, -1.0),
-            texture: handle,
+            texture: handle.clone(),
             ..default()
         })
         .insert(Nano9Sprite);
+}
+
+pub fn set_background(
+    screen: Res<Nano9Screen>,
+    mut events: PriorityEventWriter<LuaEvent<N9Arg>>,
+) {
+    events.send(
+        LuaEvent {
+            hook_name: "_set_global".to_owned(),
+            args: N9Arg::ImagePair { name: "background".into(), image: N9Image { handle: screen.0.clone(), layout: None } },
+            recipients: Recipients::All,
+        },
+        0,
+    )
 }
 
 fn spawn_camera(mut commands: Commands,
@@ -175,11 +191,11 @@ pub fn sync_window_size(
 }
 
 /// Sends events allowing scripts to drive update logic
-pub fn send_update(mut events: PriorityEventWriter<LuaEvent<()>>) {
+pub fn send_update(mut events: PriorityEventWriter<LuaEvent<N9Arg>>) {
     events.send(
         LuaEvent {
             hook_name: "_update".to_owned(),
-            args: (),
+            args: N9Arg::default(),
             recipients: Recipients::All,
         },
         1,
@@ -187,12 +203,12 @@ pub fn send_update(mut events: PriorityEventWriter<LuaEvent<()>>) {
 }
 
 /// Sends initialization event
-pub fn send_init(mut events: PriorityEventWriter<LuaEvent<()>>) {
+pub fn send_init(mut events: PriorityEventWriter<LuaEvent<N9Arg>>) {
     eprintln!("init");
     events.send(
         LuaEvent {
             hook_name: "_init".to_owned(),
-            args: (),
+            args: N9Arg::default(),
             recipients: Recipients::All,
         },
         0,
@@ -200,16 +216,17 @@ pub fn send_init(mut events: PriorityEventWriter<LuaEvent<()>>) {
 }
 
 /// Sends initialization event
-pub fn send_draw(mut events: PriorityEventWriter<LuaEvent<()>>) {
+pub fn send_draw(mut events: PriorityEventWriter<LuaEvent<N9Arg>>) {
     events.send(
         LuaEvent {
             hook_name: "_draw".to_owned(),
-            args: (),
+            args: N9Arg::default(),
             recipients: Recipients::All,
         },
         0,
     )
 }
+
 
 const UPDATE_FREQUENCY: f32 = 1.0 / 60.0;
 
@@ -272,10 +289,11 @@ impl Plugin for Nano9Plugin {
         .add_plugins(crate::plugin)
 
         .add_systems(Startup, spawn_camera)
-        .add_systems(OnExit(screens::Screen::Loading), setup_image)
+        // .add_systems(OnExit(screens::Screen::Loading), setup_image)
+        .add_systems(Startup, (setup_image, set_background).chain())
         // .add_systems(OnEnter(screens::Screen::Playing), send_init)
         // .add_systems(PreUpdate, send_init.run_if(on_asset_modified::<LuaFile>()))
-        .add_systems(PreUpdate, send_init.run_if(on_event::<ScriptLoaded>()))
+        .add_systems(PreUpdate, (set_background, send_init).chain().run_if(on_event::<ScriptLoaded>()))
         .add_systems(Update, sync_window_size)
         .add_systems(Update, fullscreen_key)
         .add_systems(
