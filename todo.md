@@ -8,6 +8,7 @@
 - [x] audio control
 - [ ] implement tile map
 - [x] show errors
+- [ ] make work with local paths
 
 ## Gameplay
 - [ ] title screen
