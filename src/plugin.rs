@@ -116,14 +116,24 @@ pub fn set_background(
 
 fn spawn_camera(mut commands: Commands,
     settings: Res<N9Settings>,
+    mut events: PriorityEventWriter<LuaEvent<N9Arg>>,
 ) {
 
     let mut camera_bundle = Camera2dBundle::default();
     // camera_bundle.projection.scaling_mode = ScalingMode::FixedVertical(512.0);
     camera_bundle.projection.scaling_mode = ScalingMode::WindowSize(settings.pixel_scale);
 
-    commands.spawn((camera_bundle,
-        IsDefaultUiCamera));
+    let id = commands.spawn((camera_bundle,
+                    IsDefaultUiCamera,
+    )).id();
+    events.send(
+        LuaEvent {
+            hook_name: "_set_global".to_owned(),
+            args: N9Arg::SetCamera { name: "camera".into(), camera: id },
+            recipients: Recipients::All,
+        },
+        0,
+    )
 }
 
 pub fn fullscreen_key(input: Res<ButtonInput<KeyCode>>,

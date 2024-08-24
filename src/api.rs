@@ -17,6 +17,7 @@ use bevy_mod_scripting::lua::prelude::tealr::mlu::mlua::{self,
 // use bevy_pixel_buffer::prelude::*;
 use crate::{
     DrawState,
+    N9Camera,
     N9Error,
     N9Image,
     N9TextLoader,
@@ -52,7 +53,8 @@ impl<T: Asset + Clone> UserData for MyHandle<T> {}
 pub enum N9Arg {
     #[default]
     None,
-    ImagePair { name: String, image: N9Image }
+    ImagePair { name: String, image: N9Image },
+    SetCamera { name: String, camera: Entity }
 }
 
 impl UserData for N9Arg { }
@@ -118,14 +120,22 @@ impl APIProvider for Nano9API {
             .set(
                 "_set_global",
                 ctx.create_function(|ctx, (arg): (N9Arg)| {
-                    if let N9Arg::ImagePair { name, image } = arg {
-                        warn!("set global {name}");
-                        ctx.globals().set(
-                            name,
-                            image)
-                    } else {
-                        // XXX: This should be an error.
-                        Ok(())
+                    match arg {
+                        N9Arg::ImagePair { name, image } => {
+                            warn!("set global {name}");
+                            ctx.globals().set(
+                                name,
+                                image)
+                        }
+                        N9Arg::SetCamera { name, camera } => {
+                            ctx.globals().set(
+                                name,
+                                N9Camera(camera))
+                        }
+                        _ => {
+                            // XXX: This should be an error.
+                            Ok(())
+                        }
                     }
                 })
                 .map_err(ScriptError::new_other)?,

@@ -25,13 +25,13 @@ impl FromLua<'_> for N9ImageLoader {
     }
 }
 
-N9ImageLoad(String);
+// N9ImageLoad(String);
 
-impl Command for N9ImageLoad {
-    fn apply(self, world: &mut World) {
+// impl Command for N9ImageLoad {
+//     fn apply(self, world: &mut World) {
 
-    }
-}
+//     }
+// }
 
 impl UserData for N9ImageLoader {
     fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {

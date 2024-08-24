@@ -144,6 +144,8 @@ function _draw()
         end
     end
 
+    -- camera.x = s.x
+    -- camera.y = s.y
     --Gravity
     --if true stop at 64
     is_in_air = s.y > ground

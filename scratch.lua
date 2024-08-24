@@ -1,4 +1,7 @@
 -- text:print("Hello, World!")
 
-pixie = image:load("pixie.png")
-sprite = pixie:spr()
+function _init()
+    pixie = image:load("images/pixie.png")
+    -- sprite = pixie:spr()
+    pixie:spr()
+end

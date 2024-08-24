@@ -47,14 +47,25 @@ impl Drop for MySprite {
     }
 }
 
-impl UserData for MySprite {
-    fn add_fields<'lua, F: UserDataFields<'lua, Self>>(fields: &mut F) {
+pub(crate) trait EntityRep {
+    fn entity(&self) -> Entity;
+}
+
+pub(crate) trait UserDataComponent {
+    fn add_fields<'lua, S: EntityRep, F: UserDataFields<'lua, S>>(fields: &mut F) {}
+
+    fn add_methods<'lua, S: EntityRep, M: UserDataMethods<'lua, S>>(methods: &mut M) {}
+}
+
+impl UserDataComponent for Transform {
+
+    fn add_fields<'lua, S: EntityRep, F: UserDataFields<'lua, S>>(fields: &mut F) {
         fields.add_field_method_get("x", |ctx, this| {
             let world = ctx.get_world()?;
             let mut world = world.write();
             let mut system_state: SystemState<Query<&Transform>> = SystemState::new(&mut world);
             let transforms = system_state.get(&mut world);
-            let transform = transforms.get(this.0).unwrap();
+            let transform = transforms.get(this.entity()).unwrap();
             Ok(transform.translation.x)
         });
 
@@ -64,19 +75,17 @@ impl UserData for MySprite {
             let mut system_state: SystemState<Query<&mut Transform>> =
                 SystemState::new(&mut world);
             let mut transforms = system_state.get_mut(&mut world);
-            let mut transform = transforms.get_mut(this.0).unwrap();
+            let mut transform = transforms.get_mut(this.entity()).unwrap();
             transform.translation.x = value;
             Ok(())
         });
-
-
         fields.add_field_method_get("y", |ctx, this| {
             let world = ctx.get_world()?;
             let mut world = world.write();
             let mut system_state: SystemState<Query<&mut Transform>> =
                 SystemState::new(&mut world);
             let mut transforms = system_state.get_mut(&mut world);
-            let transform = transforms.get_mut(this.0).unwrap();
+            let transform = transforms.get_mut(this.entity()).unwrap();
             Ok(transform.translation.y)
         });
 
@@ -86,7 +95,7 @@ impl UserData for MySprite {
             let mut system_state: SystemState<Query<&mut Transform>> =
                 SystemState::new(&mut world);
             let mut transforms = system_state.get_mut(&mut world);
-            let mut transform = transforms.get_mut(this.0).unwrap();
+            let mut transform = transforms.get_mut(this.entity()).unwrap();
             transform.translation.y = value;
             Ok(())
         });
@@ -96,7 +105,7 @@ impl UserData for MySprite {
             let mut world = world.write();
             let mut system_state: SystemState<Query<&Transform>> = SystemState::new(&mut world);
             let transforms = system_state.get(&mut world);
-            let transform = transforms.get(this.0).unwrap();
+            let transform = transforms.get(this.entity()).unwrap();
             Ok(transform.translation.z)
         });
 
@@ -106,10 +115,24 @@ impl UserData for MySprite {
             let mut system_state: SystemState<Query<&mut Transform>> =
                 SystemState::new(&mut world);
             let mut transforms = system_state.get_mut(&mut world);
-            let mut transform = transforms.get_mut(this.0).unwrap();
+            let mut transform = transforms.get_mut(this.entity()).unwrap();
             transform.translation.z = value;
             Ok(())
         });
+
+    }
+}
+
+impl EntityRep for MySprite {
+    fn entity(&self) -> Entity {
+        self.0
+    }
+}
+
+impl UserData for MySprite {
+    fn add_fields<'lua, F: UserDataFields<'lua, Self>>(fields: &mut F) {
+        Transform::add_fields::<'lua, Self, _>(fields);
+
         fields.add_field_method_set("color", |ctx, this, value| {
             let world = ctx.get_world()?;
             let mut world = world.write();

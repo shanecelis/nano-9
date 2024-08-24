@@ -12,13 +12,16 @@ mod image;
 mod audio;
 mod text;
 mod error;
+mod camera;
 pub mod screens;
+
 pub use plugin::*;
 pub use sprite::*;
 pub use image::*;
 pub use palette::*;
 pub use audio::*;
 pub use text::*;
+pub use camera::*;
 
 #[derive(thiserror::Error, Debug)]
 pub enum N9Error {
