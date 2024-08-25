@@ -16,6 +16,7 @@ use bevy_mod_scripting::lua::prelude::tealr::mlu::mlua::{self,
 };
 // use bevy_pixel_buffer::prelude::*;
 use crate::{
+    DropPolicy,
     DrawState,
     N9Camera,
     N9Error,
@@ -55,7 +56,7 @@ pub enum N9Arg {
     None,
     ImagePair { name: String, image: N9Image },
     SetCamera { name: String, camera: Entity },
-    SetSprite { name: String, sprite: Entity }
+    SetSprite { name: String, sprite: Entity, drop: DropPolicy },
 }
 
 impl UserData for N9Arg { }
@@ -128,10 +129,10 @@ impl APIProvider for Nano9API {
                                 name,
                                 image)
                         }
-                        N9Arg::SetSprite { name, sprite } => {
+                        N9Arg::SetSprite { name, sprite, drop } => {
                             ctx.globals().set(
                                 name,
-                                N9Sprite(sprite))
+                                N9Sprite { entity: sprite, drop })
                         }
                         N9Arg::SetCamera { name, camera } => {
                             ctx.globals().set(

@@ -23,6 +23,7 @@ use crate::{
     assets::{ImageHandles},
     api::N9Arg,
     screens,
+    DropPolicy,
     N9Image,
 };
 
@@ -93,7 +94,7 @@ pub fn setup_image(
     commands.insert_resource(Nano9Screen(handle.clone()));
     commands
         .spawn(SpriteBundle {
-            transform: Transform::from_xyz(0.0, 0.0, -1.0),
+            transform: Transform::from_xyz(64.0, 64.0, -1.0),
             texture: handle.clone(),
             ..default()
         })
@@ -125,7 +126,7 @@ pub fn set_background(
     events.send(
         LuaEvent {
             hook_name: "_set_global".to_owned(),
-            args: N9Arg::SetSprite { name: "background".into(), sprite: id },
+            args: N9Arg::SetSprite { name: "background".into(), sprite: id, drop: DropPolicy::Nothing },
             recipients: Recipients::All,
         },
         0,
@@ -138,6 +139,7 @@ fn spawn_camera(mut commands: Commands,
 ) {
 
     let mut camera_bundle = Camera2dBundle::default();
+    camera_bundle.transform = Transform::from_xyz(64.0, 64.0, 0.0);
     // camera_bundle.projection.scaling_mode = ScalingMode::FixedVertical(512.0);
     camera_bundle.projection.scaling_mode = ScalingMode::WindowSize(settings.pixel_scale);
 
@@ -320,8 +322,8 @@ impl Plugin for Nano9Plugin {
         .add_systems(Startup, (spawn_camera, setup_image, set_background).chain())
         // .add_systems(OnEnter(screens::Screen::Playing), send_init)
         // .add_systems(PreUpdate, send_init.run_if(on_asset_modified::<LuaFile>()))
-        // .add_systems(PreUpdate, (set_background, send_init).chain().run_if(on_event::<ScriptLoaded>()))
-        .add_systems(PreUpdate, (send_init).chain().run_if(on_event::<ScriptLoaded>()))
+        .add_systems(PreUpdate, (set_background, send_init).chain().run_if(on_event::<ScriptLoaded>()))
+        // .add_systems(PreUpdate, (send_init).chain().run_if(on_event::<ScriptLoaded>()))
         .add_systems(Update, sync_window_size)
         .add_systems(Update, fullscreen_key)
         .add_systems(

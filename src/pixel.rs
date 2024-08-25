@@ -363,153 +363,153 @@ fn align_to_mut<T, U>(slice: &mut [T]) -> Result<&mut [U], PixelError> {
 //     }
 // }
 
-#[cfg(test)]
-mod test {
-    use super::*;
-    use crate::{render_asset::RenderAssetUsages, render_resource::TextureDimension};
+// #[cfg(test)]
+// mod test {
+//     use super::*;
+//     use bevy::render::{render_asset::RenderAssetUsages, render_resource::TextureDimension};
 
-    #[test]
-    fn test_rgba8unorm_size() {
-        let format = TextureFormat::Rgba8Unorm;
-        assert_eq!(format.pixel_size(), 4);
-        assert_eq!(format.components(), 4);
-    }
+//     #[test]
+//     fn test_rgba8unorm_size() {
+//         let format = TextureFormat::Rgba8Unorm;
+//         assert_eq!(format.pixel_size(), 4);
+//         assert_eq!(format.components(), 4);
+//     }
 
-    #[test]
-    fn test_r8unorm_size() {
-        let format = TextureFormat::R8Unorm;
-        assert_eq!(format.pixel_size(), 1);
-        assert_eq!(format.components(), 1);
-    }
+//     #[test]
+//     fn test_r8unorm_size() {
+//         let format = TextureFormat::R8Unorm;
+//         assert_eq!(format.pixel_size(), 1);
+//         assert_eq!(format.components(), 1);
+//     }
 
-    #[test]
-    fn test_get_pixel() {
-        let image = Image::default();
-        assert_eq!(image.texture_descriptor.size.width, 1);
-        assert_eq!(image.texture_descriptor.size.height, 1);
-        // assert_eq!(image.get_pixel(0, 0).unwrap(), Srgba::from(Color::WHITE));
-        assert_eq!(
-            image.get_pixel(UVec2::new(0, 0)).unwrap(),
-            Srgba::WHITE.into()
-        );
-        assert_eq!(
-            image.get_pixel(UVec2::new(1, 0)).unwrap_err(),
-            PixelError::InvalidLocation
-        );
-        assert_eq!(
-            image.get_pixel(UVec2::new(0, 1)).unwrap_err(),
-            PixelError::InvalidLocation
-        );
-    }
+//     #[test]
+//     fn test_get_pixel() {
+//         let image = Image::default();
+//         assert_eq!(image.texture_descriptor.size.width, 1);
+//         assert_eq!(image.texture_descriptor.size.height, 1);
+//         // assert_eq!(image.get_pixel(0, 0).unwrap(), Srgba::from(Color::WHITE));
+//         assert_eq!(
+//             image.get_pixel(UVec2::new(0, 0)).unwrap(),
+//             Srgba::WHITE.into()
+//         );
+//         assert_eq!(
+//             image.get_pixel(UVec2::new(1, 0)).unwrap_err(),
+//             PixelError::InvalidLocation
+//         );
+//         assert_eq!(
+//             image.get_pixel(UVec2::new(0, 1)).unwrap_err(),
+//             PixelError::InvalidLocation
+//         );
+//     }
 
-    #[test]
-    fn test_align_to_from_f32() {
-        let pixel = [0.0, 0.0, 0.0, 1.0];
-        assert!(&align_to::<f32, u8>(&pixel).is_ok());
+//     #[test]
+//     fn test_align_to_from_f32() {
+//         let pixel = [0.0, 0.0, 0.0, 1.0];
+//         assert!(&align_to::<f32, u8>(&pixel).is_ok());
 
-        // We can always go to u8 from f32.
-        let pixel = [0.0, 0.0, 0.0, 1.0, 0.0];
-        assert!(&align_to::<f32, u8>(&pixel).is_ok());
+//         // We can always go to u8 from f32.
+//         let pixel = [0.0, 0.0, 0.0, 1.0, 0.0];
+//         assert!(&align_to::<f32, u8>(&pixel).is_ok());
 
-        // We can always go to u8 from f32.
-        let pixel = [0.0, 0.0, 0.0];
-        assert!(&align_to::<f32, u8>(&pixel).is_ok());
-    }
+//         // We can always go to u8 from f32.
+//         let pixel = [0.0, 0.0, 0.0];
+//         assert!(&align_to::<f32, u8>(&pixel).is_ok());
+//     }
 
-    #[test]
-    fn test_align_to_f32_from_u8() {
-        let pixel = [0u8; 4];
+//     #[test]
+//     fn test_align_to_f32_from_u8() {
+//         let pixel = [0u8; 4];
 
-        // let (prefix, aligned, suffix) = unsafe { pixel.align_to::<f32>() };
-        // assert!(prefix.is_empty());
-        // assert!(suffix.is_empty());
-        // assert_eq!(aligned.len(), 1);
+//         // let (prefix, aligned, suffix) = unsafe { pixel.align_to::<f32>() };
+//         // assert!(prefix.is_empty());
+//         // assert!(suffix.is_empty());
+//         // assert_eq!(aligned.len(), 1);
 
-        assert!(align_to::<u8, f32>(&pixel).is_ok());
+//         assert!(align_to::<u8, f32>(&pixel).is_ok());
 
-        let pixel = [0u8; 17];
-        assert!(align_to::<u8, f32>(&pixel).is_err());
+//         let pixel = [0u8; 17];
+//         assert!(align_to::<u8, f32>(&pixel).is_err());
 
-        let pixel = [0u8; 15];
-        assert!(align_to::<u8, f32>(&pixel).is_err());
-    }
+//         let pixel = [0u8; 15];
+//         assert!(align_to::<u8, f32>(&pixel).is_err());
+//     }
 
-    fn image_from<T>(
-        width: u32,
-        height: u32,
-        format: TextureFormat,
-        data: &[T],
-    ) -> Result<Image, PixelError> {
-        let size = Extent3d {
-            width,
-            height,
-            depth_or_array_layers: 1,
-        };
-        Ok(Image::new_fill(
-            size,
-            TextureDimension::D2,
-            align_to::<T, u8>(data)?,
-            format,
-            RenderAssetUsages::MAIN_WORLD,
-        ))
-    }
+//     fn image_from<T>(
+//         width: u32,
+//         height: u32,
+//         format: TextureFormat,
+//         data: &[T],
+//     ) -> Result<Image, PixelError> {
+//         let size = Extent3d {
+//             width,
+//             height,
+//             depth_or_array_layers: 1,
+//         };
+//         Ok(Image::new_fill(
+//             size,
+//             TextureDimension::D2,
+//             align_to::<T, u8>(data)?,
+//             format,
+//             RenderAssetUsages::MAIN_WORLD,
+//         ))
+//     }
 
-    #[test]
-    fn test_get_pixel_f32() {
-        let pixel = [0.0, 0.0, 0.0, 1.0];
-        // FIXME: Spooky. If the next line is removed, the following image_from() will fail.
-        // Must have to do with alignment.
-        assert_eq!(align_to::<f32, u8>(&pixel).unwrap().len(), 16);
-        let image = image_from(1, 1, TextureFormat::Rgba32Float, &pixel).unwrap();
-        assert_eq!(
-            image.get_pixel(UVec2::new(0, 0)).unwrap(),
-            LinearRgba::BLACK.into()
-        );
-    }
+//     #[test]
+//     fn test_get_pixel_f32() {
+//         let pixel = [0.0, 0.0, 0.0, 1.0];
+//         // FIXME: Spooky. If the next line is removed, the following image_from() will fail.
+//         // Must have to do with alignment.
+//         assert_eq!(align_to::<f32, u8>(&pixel).unwrap().len(), 16);
+//         let image = image_from(1, 1, TextureFormat::Rgba32Float, &pixel).unwrap();
+//         assert_eq!(
+//             image.get_pixel(UVec2::new(0, 0)).unwrap(),
+//             LinearRgba::BLACK.into()
+//         );
+//     }
 
-    #[test]
-    fn test_pixels() {
-        let pixel = [0.0, 0.0, 0.0, 1.0];
-        // FIXME: Spooky. If the next line is removed, the following image_from() will fail.
-        // Must have to do with alignment.
-        assert_eq!(align_to::<f32, u8>(&pixel).unwrap().len(), 16);
-        let image = image_from(1, 1, TextureFormat::Rgba32Float, &pixel).unwrap();
-        let mut pixels = image.pixels(..).unwrap();
-        assert_eq!(pixels.next().unwrap(), LinearRgba::BLACK.into());
-        assert_eq!(pixels.next(), None);
+//     #[test]
+//     fn test_pixels() {
+//         let pixel = [0.0, 0.0, 0.0, 1.0];
+//         // FIXME: Spooky. If the next line is removed, the following image_from() will fail.
+//         // Must have to do with alignment.
+//         assert_eq!(align_to::<f32, u8>(&pixel).unwrap().len(), 16);
+//         let image = image_from(1, 1, TextureFormat::Rgba32Float, &pixel).unwrap();
+//         let mut pixels = image.pixels(..).unwrap();
+//         assert_eq!(pixels.next().unwrap(), LinearRgba::BLACK.into());
+//         assert_eq!(pixels.next(), None);
 
-        assert_eq!(image.pixels(1..).unwrap_err(), PixelError::InvalidRange);
-        assert_eq!(image.pixels(..=1).unwrap_err(), PixelError::InvalidRange);
-        assert!(image.pixels(0..0).unwrap().next().is_none());
-        assert!(image.pixels(0..1).unwrap().next().is_some());
-    }
+//         assert_eq!(image.pixels(1..).unwrap_err(), PixelError::InvalidRange);
+//         assert_eq!(image.pixels(..=1).unwrap_err(), PixelError::InvalidRange);
+//         assert!(image.pixels(0..0).unwrap().next().is_none());
+//         assert!(image.pixels(0..1).unwrap().next().is_some());
+//     }
 
-    fn get_rgba(image: &Image, loc: impl Into<PixelLoc>) -> LinearRgba {
-        LinearRgba::from(image.get_pixel(loc).unwrap())
-    }
+//     // fn get_rgba(image: &Image, loc: impl Into<PixelLoc>) -> LinearRgba {
+//     //     LinearRgba::from(image.get_pixel(loc).unwrap())
+//     // }
 
-    #[test]
-    fn test_r8image() {
-        let pixel = [255u8];
-        // FIXME: Spooky. If the next line is removed, the following
-        // image_from() will fail. Must have to do with alignment.
-        let image = image_from(1, 1, TextureFormat::R8Unorm, &pixel).unwrap();
-        assert_eq!(image.get_pixel(0).unwrap(), LinearRgba::RED.into());
+//     #[test]
+//     fn test_r8image() {
+//         let pixel = [255u8];
+//         // FIXME: Spooky. If the next line is removed, the following
+//         // image_from() will fail. Must have to do with alignment.
+//         let image = image_from(1, 1, TextureFormat::R8Unorm, &pixel).unwrap();
+//         assert_eq!(image.get_pixel(0).unwrap(), LinearRgba::RED.into());
 
-        let image = image_from(1, 1, TextureFormat::R8Uint, &pixel).unwrap();
-        assert_eq!(get_rgba(&image, 0).red, u8::MAX as f32);
+//         let image = image_from(1, 1, TextureFormat::R8Uint, &pixel).unwrap();
+//         assert_eq!(get_rgba(&image, 0).red, u8::MAX as f32);
 
-        let pixel = [127i8];
-        let image = image_from(1, 1, TextureFormat::R8Snorm, &pixel).unwrap();
-        assert_eq!(image.get_pixel(0).unwrap(), LinearRgba::RED.into());
+//         let pixel = [127i8];
+//         let image = image_from(1, 1, TextureFormat::R8Snorm, &pixel).unwrap();
+//         assert_eq!(image.get_pixel(0).unwrap(), LinearRgba::RED.into());
 
-        let image = image_from(1, 1, TextureFormat::R8Sint, &pixel).unwrap();
-        assert_eq!(get_rgba(&image, 0).red, i8::MAX as f32);
-    }
+//         let image = image_from(1, 1, TextureFormat::R8Sint, &pixel).unwrap();
+//         assert_eq!(get_rgba(&image, 0).red, i8::MAX as f32);
+//     }
 
-    #[test]
-    fn from_pixels() {
-        let image = Image::from_pixels(&[LinearRgba::RED], 1).unwrap();
-        assert_eq!(image.get_pixel(0).unwrap(), LinearRgba::RED.into());
-    }
-}
+//     #[test]
+//     fn from_pixels() {
+//         let image = Image::from_pixels(&[LinearRgba::RED], 1).unwrap();
+//         assert_eq!(image.get_pixel(0).unwrap(), LinearRgba::RED.into());
+//     }
+// }

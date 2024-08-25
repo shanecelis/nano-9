@@ -39,14 +39,25 @@ pub(crate) fn plugin(app: &mut App) {
     app.add_systems(PostUpdate, despawn_list_system);
 }
 
-pub struct N9Sprite(pub Entity);
+#[derive(Debug, Clone, Copy)]
+pub enum DropPolicy {
+    Nothing,
+    Despawn,
+}
+
+pub struct N9Sprite {
+    pub entity: Entity,
+    pub drop: DropPolicy,
+}
 
 impl Drop for N9Sprite {
     fn drop(&mut self) {
-        if let Some(list) = despawn_list() {
-            list.push(self.0);
-        } else {
-            warn!("Unable to despawn sprite {:?}.", self.0);
+        if matches!(self.drop, DropPolicy::Despawn) {
+            if let Some(list) = despawn_list() {
+                list.push(self.entity);
+            } else {
+                warn!("Unable to despawn sprite {:?}.", self.entity);
+            }
         }
     }
 }
@@ -167,7 +178,7 @@ impl UserDataComponent for Transform {
 
 impl EntityRep for N9Sprite {
     fn entity(&self) -> Entity {
-        self.0
+        self.entity
     }
 }
 
@@ -185,7 +196,7 @@ impl UserData for N9Sprite {
             };
             let mut system_state: SystemState<Query<&mut Sprite>> = SystemState::new(&mut world);
             let mut query = system_state.get_mut(&mut world);
-            let mut item = query.get_mut(this.0).unwrap();
+            let mut item = query.get_mut(this.entity).unwrap();
             item.color = c;
             Ok(())
         });
@@ -195,7 +206,7 @@ impl UserData for N9Sprite {
             let mut world = world.write();
             let mut system_state: SystemState<Query<&mut Sprite>> = SystemState::new(&mut world);
             let mut query = system_state.get_mut(&mut world);
-            let mut item = query.get_mut(this.0).unwrap();
+            let mut item = query.get_mut(this.entity).unwrap();
             item.flip_x = value;
             Ok(())
         });
@@ -205,7 +216,7 @@ impl UserData for N9Sprite {
             let mut world = world.write();
             let mut system_state: SystemState<Query<&mut Sprite>> = SystemState::new(&mut world);
             let mut query = system_state.get_mut(&mut world);
-            let mut item = query.get_mut(this.0).unwrap();
+            let mut item = query.get_mut(this.entity).unwrap();
             item.custom_size.get_or_insert(Vec2::ONE).x = value;
             Ok(())
         });
@@ -215,7 +226,7 @@ impl UserData for N9Sprite {
             let mut world = world.write();
             let mut system_state: SystemState<Query<&mut Sprite>> = SystemState::new(&mut world);
             let mut query = system_state.get_mut(&mut world);
-            let mut item = query.get_mut(this.0).unwrap();
+            let mut item = query.get_mut(this.entity).unwrap();
             item.custom_size.get_or_insert(Vec2::ONE).y = value;
             Ok(())
         });
@@ -225,7 +236,7 @@ impl UserData for N9Sprite {
             let mut world = world.write();
             let mut system_state: SystemState<Query<&mut Sprite>> = SystemState::new(&mut world);
             let mut query = system_state.get_mut(&mut world);
-            let mut item = query.get_mut(this.0).unwrap();
+            let mut item = query.get_mut(this.entity).unwrap();
             item.flip_y = value;
             Ok(())
         });
@@ -236,7 +247,7 @@ impl UserData for N9Sprite {
             let mut system_state: SystemState<Query<&mut TextureAtlas>> =
                 SystemState::new(&mut world);
             let mut query = system_state.get_mut(&mut world);
-            let mut item = query.get_mut(this.0).unwrap();
+            let mut item = query.get_mut(this.entity).unwrap();
             item.index = value;
             Ok(())
         });
@@ -247,7 +258,7 @@ impl UserData for N9Sprite {
             let mut system_state: SystemState<Query<&mut Sprite>> =
                 SystemState::new(&mut world);
             let mut query = system_state.get_mut(&mut world);
-            let mut item = query.get_mut(this.0).unwrap();
+            let mut item = query.get_mut(this.entity).unwrap();
             item.anchor = Anchor::Custom(Vec2::new(value[0] / 2.0, value[1] / 2.0));
             Ok(())
         });
@@ -257,7 +268,7 @@ impl UserData for N9Sprite {
             let mut world = world.write();
             let mut system_state: SystemState<Query<&mut Visibility>> = SystemState::new(&mut world);
             let mut query = system_state.get_mut(&mut world);
-            let mut item = query.get_mut(this.0).unwrap();
+            let mut item = query.get_mut(this.entity).unwrap();
             *item = if value { Visibility::Visible } else { Visibility::Hidden };
             Ok(())
         });
@@ -268,7 +279,7 @@ impl UserData for N9Sprite {
             let mut system_state: SystemState<(Query<&Handle<Image>>,)> =
                 SystemState::new(&mut world);
             let (query,) = system_state.get_mut(&mut world);
-            let mut item = query.get(this.0).unwrap();
+            let mut item = query.get(this.entity).unwrap();
             Ok(N9Image { handle: item.clone(), layout: None }) //.ok_or(LuaError::RuntimeError("No such image".into()))
         });
     }
@@ -277,7 +288,7 @@ impl UserData for N9Sprite {
         methods.add_method_mut("despawn", |ctx, this, _: ()| {
             let world = ctx.get_world()?;
             let mut world = world.write();
-            world.despawn(this.0);
+            world.despawn(this.entity);
             Ok(())
         });
         // methods.add_method_mut("set_anchor", |ctx, this, _: ()| {
@@ -287,13 +298,13 @@ impl UserData for N9Sprite {
         //     let mut system_state: SystemState<Query<&mut Sprite>> =
         //         SystemState::new(&mut world);
         //     let mut query = system_state.get_mut(&mut world);
-        //     let mut item = query.get_mut(this.0).unwrap();
+        //     let mut item = query.get_mut(this.entity).unwrap();
         //     item.anchor = Anchor::Custom(value.0, value.1);
         //     Ok(())
         // });
 
         // methods.add_meta_method(MetaMethod::Add, |_, this, value: i32| {
-        //     Ok(this.0 + value)
+        //     Ok(this.entity + value)
         // });
     }
 }

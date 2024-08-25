@@ -9,6 +9,7 @@ use bevy_mod_scripting::lua::prelude::tealr::mlu::mlua::{
 use bevy_mod_scripting::prelude::*;
 use crate::{
     api::MyHandle,
+    DropPolicy,
     N9Sprite,
     palette::Nano9Palette,
     pixel::PixelAccess,
@@ -48,6 +49,16 @@ impl UserData for N9ImageLoader {
     }
 }
 
+pub trait ValueExt {
+    fn to_f32(&self) -> Option<f32>;
+}
+
+impl ValueExt for Value<'_> {
+    fn to_f32(&self) -> Option<f32> {
+        self.as_f32().or(self.as_integer().map(|x| x as f32))
+    }
+}
+
 #[derive(Clone)]
 pub struct N9Image {
     pub handle: Handle<Image>,
@@ -83,29 +94,46 @@ impl UserData for N9Image {
             Ok(())
         });
 
-        methods.add_method_mut("spr", |ctx, this, (n): (Option<usize>)| {
+        methods.add_method_mut("spr", |ctx, this, mut args: LuaMultiValue| {
             let world = ctx.get_world()?;
             let mut world = world.write();
+            eprintln!("args {args:?} {} ", args.len());
+            let n = if args.len() == 2 {
+                None
+            } else {
+                args.pop_front().and_then(|x| x.as_usize())
+            };
+            let x = args.pop_front().and_then(|v| v.to_f32()).unwrap_or(0.0);
+            let y = args.pop_front().and_then(|v| v.to_f32()).unwrap_or(0.0);
+            eprintln!("x {x} y {y}");
             if let Some(n) = n {
-                Ok(N9Sprite(
+                Ok(N9Sprite {
+                    entity:
                     world.spawn((
                         SpriteBundle {
                             texture: this.handle.clone(),
+                            transform: Transform::from_xyz(x, y, 0.0),
                             ..default()
                         },
                         TextureAtlas {
                             layout: this.layout.clone().unwrap(),
                             index: n
                         },
-                        )).id()))
+                        )).id(),
+                    drop: DropPolicy::Despawn,
+                })
             } else {
-                Ok(N9Sprite(
+                Ok(N9Sprite {
+                    entity:
                     world.spawn((
                         SpriteBundle {
                             texture: this.handle.clone(),
+                            transform: Transform::from_xyz(x, y, 0.0),
                             ..default()
                         },
-                        )).id()))
+                        )).id(),
+                    drop: DropPolicy::Despawn,
+                })
             }
         });
 
@@ -135,5 +163,17 @@ impl UserData for N9Image {
         //     let color = image.get_pixel((x as usize, y as usize));
         //     Ok(())
         // });
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use bevy_mod_scripting::prelude::*;
+    #[test]
+    fn explore_multivalue() {
+        let mut m = LuaMultiValue::new();
+        m.push_front(Value::Boolean(true));
+        // m.push_back(true);
+        assert_eq!(m.pop_front().unwrap(), Value::Boolean(true));
     }
 }
