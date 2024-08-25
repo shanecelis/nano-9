@@ -100,14 +100,32 @@ pub fn setup_image(
         .insert(Nano9Sprite);
 }
 
+// pub fn set_background_image(
+//     query: Query<Entity, With<Nano9Sprite>>,
+//     mut events: PriorityEventWriter<LuaEvent<N9Arg>>,
+// ) {
+//     if let Some(id) = query.single() {
+//     events.send(
+//         LuaEvent {
+//             hook_name: "_set_global".to_owned(),
+//             args: N9Arg::SetSprite { name: "background_image".into(), sprite: id},
+//             recipients: Recipients::All,
+//         },
+//         0,
+//     )
+//     }
+
+// }
+
 pub fn set_background(
-    screen: Res<Nano9Screen>,
+    screen: Query<Entity, With<Nano9Sprite>>,
     mut events: PriorityEventWriter<LuaEvent<N9Arg>>,
 ) {
+    let id = screen.single();
     events.send(
         LuaEvent {
             hook_name: "_set_global".to_owned(),
-            args: N9Arg::ImagePair { name: "background".into(), image: N9Image { handle: screen.0.clone(), layout: None } },
+            args: N9Arg::SetSprite { name: "background".into(), sprite: id },
             recipients: Recipients::All,
         },
         0,
@@ -298,12 +316,12 @@ impl Plugin for Nano9Plugin {
         .init_resource::<DrawState>()
         .add_plugins(crate::plugin)
 
-        .add_systems(Startup, spawn_camera)
         // .add_systems(OnExit(screens::Screen::Loading), setup_image)
-        .add_systems(Startup, (setup_image, set_background).chain())
+        .add_systems(Startup, (spawn_camera, setup_image, set_background).chain())
         // .add_systems(OnEnter(screens::Screen::Playing), send_init)
         // .add_systems(PreUpdate, send_init.run_if(on_asset_modified::<LuaFile>()))
-        .add_systems(PreUpdate, (set_background, send_init).chain().run_if(on_event::<ScriptLoaded>()))
+        // .add_systems(PreUpdate, (set_background, send_init).chain().run_if(on_event::<ScriptLoaded>()))
+        .add_systems(PreUpdate, (send_init).chain().run_if(on_event::<ScriptLoaded>()))
         .add_systems(Update, sync_window_size)
         .add_systems(Update, fullscreen_key)
         .add_systems(

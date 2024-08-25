@@ -1,16 +1,20 @@
 
 use bevy::{
-    ecs::system::SystemState,
+    ecs::system::{SystemState, Command},
     sprite::Anchor,
     prelude::*,
+    transform::commands::PushChildInPlace,
 };
 
 use bevy_mod_scripting::lua::prelude::tealr::mlu::mlua::{
     UserData, UserDataFields, UserDataMethods,
 };
+
+use bevy_mod_scripting::api::providers::bevy_ecs::LuaEntity;
 use bevy_mod_scripting::prelude::*;
 // use bevy_pixel_buffer::prelude::*;
 use crate::{
+    N9Image,
     palette::Nano9Palette,
 };
 use std::sync::OnceLock;
@@ -35,9 +39,9 @@ pub(crate) fn plugin(app: &mut App) {
     app.add_systems(PostUpdate, despawn_list_system);
 }
 
-pub struct MySprite(pub Entity);
+pub struct N9Sprite(pub Entity);
 
-impl Drop for MySprite {
+impl Drop for N9Sprite {
     fn drop(&mut self) {
         if let Some(list) = despawn_list() {
             list.push(self.0);
@@ -55,6 +59,32 @@ pub(crate) trait UserDataComponent {
     fn add_fields<'lua, S: EntityRep, F: UserDataFields<'lua, S>>(fields: &mut F) {}
 
     fn add_methods<'lua, S: EntityRep, M: UserDataMethods<'lua, S>>(methods: &mut M) {}
+}
+
+impl<T:EntityRep> UserDataComponent for T {
+
+    fn add_fields<'lua, S: EntityRep, F: UserDataFields<'lua, S>>(fields: &mut F) {
+
+        fields.add_field_method_get("parent", |ctx, this| {
+            let world = ctx.get_world()?;
+            let mut world = world.write();
+            let mut system_state: SystemState<Query<&Parent>> = SystemState::new(&mut world);
+            let parents = system_state.get(&world);
+            parents.get(this.entity())
+                .map(|p| LuaEntity::new(p.get()))
+                // .map(|p| p.get())
+                .map_err(|e| LuaError::RuntimeError("No parent available".into()))
+
+        });
+        fields.add_field_method_set("parent", |ctx, this, parent: LuaEntity| {
+            let world = ctx.get_world()?;
+            let mut world = world.write();
+            let cmd = PushChildInPlace { child: this.entity(), parent: parent.inner()? };
+            cmd.apply(&mut world);
+            Ok(())
+        });
+
+    }
 }
 
 impl UserDataComponent for Transform {
@@ -120,16 +150,28 @@ impl UserDataComponent for Transform {
             Ok(())
         });
 
+        fields.add_field_method_set("parent", |ctx, this, parent: LuaEntity| {
+            let world = ctx.get_world()?;
+            let mut world = world.write();
+            let cmd = PushChildInPlace { child: this.entity(), parent: parent.inner()? };
+            cmd.apply(&mut world);
+            Ok(())
+        });
+
+        fields.add_field_method_get("entity", |ctx, this| {
+            Ok(LuaEntity::new(this.entity()))
+        });
+
     }
 }
 
-impl EntityRep for MySprite {
+impl EntityRep for N9Sprite {
     fn entity(&self) -> Entity {
         self.0
     }
 }
 
-impl UserData for MySprite {
+impl UserData for N9Sprite {
     fn add_fields<'lua, F: UserDataFields<'lua, Self>>(fields: &mut F) {
         Transform::add_fields::<'lua, Self, _>(fields);
 
@@ -218,6 +260,16 @@ impl UserData for MySprite {
             let mut item = query.get_mut(this.0).unwrap();
             *item = if value { Visibility::Visible } else { Visibility::Hidden };
             Ok(())
+        });
+
+        fields.add_field_method_get("image", |ctx, this| {
+            let world = ctx.get_world()?;
+            let mut world = world.write();
+            let mut system_state: SystemState<(Query<&Handle<Image>>,)> =
+                SystemState::new(&mut world);
+            let (query,) = system_state.get_mut(&mut world);
+            let mut item = query.get(this.0).unwrap();
+            Ok(N9Image { handle: item.clone(), layout: None }) //.ok_or(LuaError::RuntimeError("No such image".into()))
         });
     }
 

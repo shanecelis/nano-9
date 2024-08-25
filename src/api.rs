@@ -19,6 +19,7 @@ use crate::{
     DrawState,
     N9Camera,
     N9Error,
+    N9Sprite,
     N9Image,
     N9TextLoader,
     N9TextStyle,
@@ -27,7 +28,6 @@ use crate::{
     Nano9Palette,
     Nano9Screen,
     Nano9SpriteSheet,
-    MySprite,
     pixel::PixelAccess,
 };
 
@@ -54,7 +54,8 @@ pub enum N9Arg {
     #[default]
     None,
     ImagePair { name: String, image: N9Image },
-    SetCamera { name: String, camera: Entity }
+    SetCamera { name: String, camera: Entity },
+    SetSprite { name: String, sprite: Entity }
 }
 
 impl UserData for N9Arg { }
@@ -126,6 +127,11 @@ impl APIProvider for Nano9API {
                             ctx.globals().set(
                                 name,
                                 image)
+                        }
+                        N9Arg::SetSprite { name, sprite } => {
+                            ctx.globals().set(
+                                name,
+                                N9Sprite(sprite))
                         }
                         N9Arg::SetCamera { name, camera } => {
                             ctx.globals().set(

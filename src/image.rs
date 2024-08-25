@@ -9,7 +9,7 @@ use bevy_mod_scripting::lua::prelude::tealr::mlu::mlua::{
 use bevy_mod_scripting::prelude::*;
 use crate::{
     api::MyHandle,
-    MySprite,
+    N9Sprite,
     palette::Nano9Palette,
     pixel::PixelAccess,
 };
@@ -87,7 +87,7 @@ impl UserData for N9Image {
             let world = ctx.get_world()?;
             let mut world = world.write();
             if let Some(n) = n {
-                Ok(MySprite(
+                Ok(N9Sprite(
                     world.spawn((
                         SpriteBundle {
                             texture: this.handle.clone(),
@@ -99,7 +99,7 @@ impl UserData for N9Image {
                         },
                         )).id()))
             } else {
-                Ok(MySprite(
+                Ok(N9Sprite(
                     world.spawn((
                         SpriteBundle {
                             texture: this.handle.clone(),

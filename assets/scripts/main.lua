@@ -58,13 +58,17 @@ function _init()
     h1 = hearts:spr(0)
     h1.anchor = { -1, 1 } -- move the heart sprite by its top-left.
     -- place heart on top left of screen.
+    h1.parent = camera.entity
     h1.x = -64
     h1.y = 64
     h2 = hearts:spr(1)
     h2.index = 0
     h2.anchor = { -1, 1 }
+    h2.parent = camera.entity
     h2.y = 64
     h2.x = -50
+
+    background.parent = camera.entity
 
     s1 = slime_new()
     s2 = slime_new()
@@ -144,8 +148,8 @@ function _draw()
         end
     end
 
-    -- camera.x = s.x
-    -- camera.y = s.y
+    camera.x = s.x
+    camera.y = s.y
     --Gravity
     --if true stop at 64
     is_in_air = s.y > ground
