@@ -1,5 +1,4 @@
 use bevy::{
-    audio::PlaybackMode,
     ecs::system::{Command, CommandQueue, SystemState},
     prelude::*,
 };
@@ -16,7 +15,7 @@ const RESERVE_ENTITY_COUNT: usize = 10;
 pub(crate) fn reserved_entities() -> Option<&'static mut Vec<Entity>> {
     static mut MEM: OnceLock<Vec<Entity>> = OnceLock::new();
     unsafe {
-        let _ = MEM.get_or_init(|| Vec::new());
+        let _ = MEM.get_or_init(Vec::new);
         MEM.get_mut()
     }
 }
@@ -28,7 +27,7 @@ pub(crate) fn plugin(app: &mut App) {
 }
 
 pub fn reserve_entities(world: &mut World) {
-    let Some(mut entities) = reserved_entities() else {
+    let Some(entities) = reserved_entities() else {
         return;
     };
     let delta = RESERVE_ENTITY_COUNT - entities.len();
@@ -40,7 +39,7 @@ pub fn reserve_entities(world: &mut World) {
 }
 
 pub fn run_deferred_commands(world: &mut World) {
-    let Some(mut commands) = deferred_commands() else {
+    let Some(commands) = deferred_commands() else {
         return;
     };
     commands.apply(world);
@@ -49,7 +48,7 @@ pub fn run_deferred_commands(world: &mut World) {
 pub(crate) fn deferred_commands() -> Option<&'static mut CommandQueue> {
     static mut MEM: OnceLock<CommandQueue> = OnceLock::new();
     unsafe {
-        let _ = MEM.get_or_init(|| CommandQueue::default());
+        let _ = MEM.get_or_init(CommandQueue::default);
         MEM.get_mut()
     }
 }
@@ -100,13 +99,11 @@ impl UserData for N9TextLoader {
                         ..default()
                     })
                     .id();
-            } else {
-                if let Some(entities) = reserved_entities() {
-                    if let Some(id) = entities.pop() {
-                        deferred_commands().map(|c| c.push(Print(id, str, TextStyle::default())));
-                    } else {
-                        warn!("Ran out of reserved entities.");
-                    }
+            } else if let Some(entities) = reserved_entities() {
+                if let Some(id) = entities.pop() {
+                    if let Some(c) = deferred_commands() { c.push(Print(id, str, TextStyle::default())) }
+                } else {
+                    warn!("Ran out of reserved entities.");
                 }
             }
             Ok(())

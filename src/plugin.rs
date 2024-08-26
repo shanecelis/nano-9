@@ -7,7 +7,6 @@ use bevy::{
         camera::ScalingMode,
         render_asset::RenderAssetUsages,
         render_resource::{Extent3d, TextureDimension, TextureFormat},
-        texture::ImageSampler,
     },
     utils::Duration,
     window::{PresentMode, PrimaryWindow, WindowMode, WindowResized, WindowResolution},
@@ -16,7 +15,7 @@ use bevy::{
 use bevy_asset_loader::prelude::*;
 use bevy_mod_scripting::{core::event::ScriptLoaded, prelude::*};
 // use bevy_pixel_buffer::prelude::*;
-use crate::{api::N9Arg, assets::ImageHandles, screens, DropPolicy, N9Image};
+use crate::{api::N9Arg, assets::ImageHandles, screens, DropPolicy};
 
 #[derive(AssetCollection, Resource)]
 struct ImageAssets {
@@ -67,7 +66,7 @@ pub fn setup_image(
     asset_server: Res<AssetServer>,
     settings: Res<N9Settings>,
 ) {
-    let mut image = Image::new_fill(
+    let image = Image::new_fill(
         Extent3d {
             width: settings.canvas_size.x,
             height: settings.canvas_size.y,

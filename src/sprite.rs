@@ -18,7 +18,7 @@ use std::sync::OnceLock;
 pub(crate) fn despawn_list() -> Option<&'static mut Vec<Entity>> {
     static mut MEM: OnceLock<Vec<Entity>> = OnceLock::new();
     unsafe {
-        let _ = MEM.get_or_init(|| Vec::new());
+        let _ = MEM.get_or_init(Vec::new);
         MEM.get_mut()
     }
 }
@@ -26,7 +26,7 @@ pub(crate) fn despawn_list() -> Option<&'static mut Vec<Entity>> {
 fn despawn_list_system(mut commands: Commands) {
     if let Some(list) = despawn_list() {
         for id in list.drain(..) {
-            commands.get_entity(id).map(|mut e| e.despawn());
+            if let Some(mut e) = commands.get_entity(id) { e.despawn() }
         }
     }
 }
@@ -274,7 +274,7 @@ impl UserData for N9Sprite {
             let mut system_state: SystemState<(Query<&Handle<Image>>,)> =
                 SystemState::new(&mut world);
             let (query,) = system_state.get_mut(&mut world);
-            let mut item = query.get(this.entity).unwrap();
+            let item = query.get(this.entity).unwrap();
             Ok(N9Image {
                 handle: item.clone(),
                 layout: None,

@@ -1,8 +1,8 @@
 use bevy::{ecs::system::SystemState, prelude::*};
 
-use crate::{api::MyHandle, palette::Nano9Palette, pixel::PixelAccess, DropPolicy, N9Sprite};
+use crate::{palette::Nano9Palette, pixel::PixelAccess, DropPolicy, N9Sprite};
 use bevy_mod_scripting::lua::prelude::tealr::mlu::mlua::{
-    UserData, UserDataFields, UserDataMethods,
+    UserData, UserDataMethods,
 };
 use bevy_mod_scripting::prelude::*;
 
@@ -170,8 +170,8 @@ mod test {
     #[test]
     fn explore_multivalue() {
         let mut m = LuaMultiValue::new();
-        m.push_front(Value::Boolean(true));
+        m.push_front(LuaValue::Boolean(true));
         // m.push_back(true);
-        assert_eq!(m.pop_front().unwrap(), Value::Boolean(true));
+        assert_eq!(m.pop_front().unwrap(), LuaValue::Boolean(true));
     }
 }

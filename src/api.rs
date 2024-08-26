@@ -1,17 +1,16 @@
 #![allow(deprecated)]
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 
 use bevy::{ecs::system::SystemState, prelude::*, reflect::Reflect};
-use bevy_mod_scripting::{api::lua::RegisterForeignLuaType, prelude::*};
+use bevy_mod_scripting::prelude::*;
 
 use bevy_mod_scripting::lua::prelude::tealr::mlu::mlua::{
-    self, UserData, UserDataFields, UserDataMethods,
+    self, UserData,
 };
 // use bevy_pixel_buffer::prelude::*;
 use crate::{
-    pixel::PixelAccess, DrawState, DropPolicy, N9AudioLoader, N9Camera, N9Error, N9Image,
-    N9ImageLoader, N9Sprite, N9TextLoader, N9TextStyle, Nano9Palette, Nano9Screen,
-    Nano9SpriteSheet,
+    pixel::PixelAccess, DropPolicy, N9AudioLoader, N9Camera, N9Image,
+    N9ImageLoader, N9Sprite, N9TextLoader, Nano9Palette, Nano9Screen,
 };
 
 #[derive(Clone)]
@@ -104,7 +103,7 @@ impl APIProvider for Nano9API {
         ctx.globals()
             .set(
                 "_set_global",
-                ctx.create_function(|ctx, (arg): (N9Arg)| {
+                ctx.create_function(|ctx, arg: N9Arg| {
                     match arg {
                         N9Arg::ImagePair { name, image } => {
                             warn!("set global {name}");

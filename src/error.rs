@@ -132,7 +132,7 @@ pub fn add_messages(
 }
 
 pub fn clear_messages(
-    mut r: EventReader<ScriptLoaded>,
+    r: EventReader<ScriptLoaded>,
     query: Query<Entity, With<ErrorMessages>>,
     frame_count: Res<FrameCount>,
     state: Res<State<ErrorState>>,
