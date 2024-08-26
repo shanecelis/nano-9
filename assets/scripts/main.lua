@@ -68,8 +68,6 @@ function _init()
     h2.y = 64
     h2.x = -50
 
-    background.parent = camera.entity
-
     s1 = slime_new()
     s2 = slime_new()
     s2.sprite.x = 22

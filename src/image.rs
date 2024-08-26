@@ -10,6 +10,7 @@ use bevy_mod_scripting::prelude::*;
 use crate::{
     api::MyHandle,
     DropPolicy,
+
     N9Sprite,
     palette::Nano9Palette,
     pixel::PixelAccess,
@@ -97,7 +98,7 @@ impl UserData for N9Image {
         methods.add_method_mut("spr", |ctx, this, mut args: LuaMultiValue| {
             let world = ctx.get_world()?;
             let mut world = world.write();
-            eprintln!("args {args:?} {} ", args.len());
+            // eprintln!("args {args:?} {} ", args.len());
             let n = if args.len() == 2 {
                 None
             } else {
@@ -105,7 +106,7 @@ impl UserData for N9Image {
             };
             let x = args.pop_front().and_then(|v| v.to_f32()).unwrap_or(0.0);
             let y = args.pop_front().and_then(|v| v.to_f32()).unwrap_or(0.0);
-            eprintln!("x {x} y {y}");
+            // eprintln!("x {x} y {y}");
             if let Some(n) = n {
                 Ok(N9Sprite {
                     entity:

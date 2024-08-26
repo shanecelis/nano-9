@@ -92,50 +92,28 @@ pub fn setup_image(
 
     let handle = assets.add(image);
     commands.insert_resource(Nano9Screen(handle.clone()));
-    commands
-        .spawn(SpriteBundle {
-            transform: Transform::from_xyz(64.0, 64.0, -1.0),
-            texture: handle.clone(),
-            ..default()
-        })
-        .insert(Nano9Sprite);
 }
-
-// pub fn set_background_image(
-//     query: Query<Entity, With<Nano9Sprite>>,
-//     mut events: PriorityEventWriter<LuaEvent<N9Arg>>,
-// ) {
-//     if let Some(id) = query.single() {
-//     events.send(
-//         LuaEvent {
-//             hook_name: "_set_global".to_owned(),
-//             args: N9Arg::SetSprite { name: "background_image".into(), sprite: id},
-//             recipients: Recipients::All,
-//         },
-//         0,
-//     )
-//     }
-
-// }
 
 pub fn set_background(
     screen: Query<Entity, With<Nano9Sprite>>,
     mut events: PriorityEventWriter<LuaEvent<N9Arg>>,
 ) {
-    let id = screen.single();
-    events.send(
-        LuaEvent {
-            hook_name: "_set_global".to_owned(),
-            args: N9Arg::SetSprite { name: "background".into(), sprite: id, drop: DropPolicy::Nothing },
-            recipients: Recipients::All,
-        },
-        0,
-    )
+    if let Ok(id) = screen.get_single() {
+        events.send(
+            LuaEvent {
+                hook_name: "_set_global".to_owned(),
+                args: N9Arg::SetSprite { name: "background".into(), sprite: id, drop: DropPolicy::Nothing },
+                recipients: Recipients::All,
+            },
+            0,
+        );
+    }
 }
 
 fn spawn_camera(mut commands: Commands,
     settings: Res<N9Settings>,
     mut events: PriorityEventWriter<LuaEvent<N9Arg>>,
+                screen: Res<Nano9Screen>
 ) {
 
     let mut camera_bundle = Camera2dBundle::default();
@@ -145,7 +123,17 @@ fn spawn_camera(mut commands: Commands,
 
     let id = commands.spawn((camera_bundle,
                     IsDefaultUiCamera,
-    )).id();
+InheritedVisibility::default()
+    )).with_children(|parent| {
+        parent
+            .spawn((SpriteBundle {
+                // transform: Transform::from_xyz(64.0, 64.0, -1.0),
+                transform: Transform::from_xyz(0.0, 0.0, -100.0),
+                texture: screen.0.clone(),
+                ..default()
+            },Nano9Sprite));
+    })
+      .id();
     events.send(
         LuaEvent {
             hook_name: "_set_global".to_owned(),
@@ -319,7 +307,7 @@ impl Plugin for Nano9Plugin {
         .add_plugins(crate::plugin)
 
         // .add_systems(OnExit(screens::Screen::Loading), setup_image)
-        .add_systems(Startup, (spawn_camera, setup_image, set_background).chain())
+        .add_systems(Startup, (setup_image, spawn_camera, set_background).chain())
         // .add_systems(OnEnter(screens::Screen::Playing), send_init)
         // .add_systems(PreUpdate, send_init.run_if(on_asset_modified::<LuaFile>()))
         .add_systems(PreUpdate, (set_background, send_init).chain().run_if(on_event::<ScriptLoaded>()))
