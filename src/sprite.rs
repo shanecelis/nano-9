@@ -1,8 +1,7 @@
-
 use bevy::{
-    ecs::system::{SystemState, Command},
-    sprite::Anchor,
+    ecs::system::{Command, SystemState},
     prelude::*,
+    sprite::Anchor,
     transform::commands::PushChildInPlace,
 };
 
@@ -13,10 +12,7 @@ use bevy_mod_scripting::lua::prelude::tealr::mlu::mlua::{
 use bevy_mod_scripting::api::providers::bevy_ecs::LuaEntity;
 use bevy_mod_scripting::prelude::*;
 // use bevy_pixel_buffer::prelude::*;
-use crate::{
-    N9Image,
-    palette::Nano9Palette,
-};
+use crate::{palette::Nano9Palette, N9Image};
 use std::sync::OnceLock;
 
 pub(crate) fn despawn_list() -> Option<&'static mut Vec<Entity>> {
@@ -72,34 +68,33 @@ pub(crate) trait UserDataComponent {
     fn add_methods<'lua, S: EntityRep, M: UserDataMethods<'lua, S>>(methods: &mut M) {}
 }
 
-impl<T:EntityRep> UserDataComponent for T {
-
+impl<T: EntityRep> UserDataComponent for T {
     fn add_fields<'lua, S: EntityRep, F: UserDataFields<'lua, S>>(fields: &mut F) {
-
         fields.add_field_method_get("parent", |ctx, this| {
             let world = ctx.get_world()?;
             let mut world = world.write();
             let mut system_state: SystemState<Query<&Parent>> = SystemState::new(&mut world);
             let parents = system_state.get(&world);
-            parents.get(this.entity())
+            parents
+                .get(this.entity())
                 .map(|p| LuaEntity::new(p.get()))
                 // .map(|p| p.get())
                 .map_err(|e| LuaError::RuntimeError("No parent available".into()))
-
         });
         fields.add_field_method_set("parent", |ctx, this, parent: LuaEntity| {
             let world = ctx.get_world()?;
             let mut world = world.write();
-            let cmd = PushChildInPlace { child: this.entity(), parent: parent.inner()? };
+            let cmd = PushChildInPlace {
+                child: this.entity(),
+                parent: parent.inner()?,
+            };
             cmd.apply(&mut world);
             Ok(())
         });
-
     }
 }
 
 impl UserDataComponent for Transform {
-
     fn add_fields<'lua, S: EntityRep, F: UserDataFields<'lua, S>>(fields: &mut F) {
         fields.add_field_method_get("x", |ctx, this| {
             let world = ctx.get_world()?;
@@ -113,8 +108,7 @@ impl UserDataComponent for Transform {
         fields.add_field_method_set("x", |ctx, this, value: f32| {
             let world = ctx.get_world()?;
             let mut world = world.write();
-            let mut system_state: SystemState<Query<&mut Transform>> =
-                SystemState::new(&mut world);
+            let mut system_state: SystemState<Query<&mut Transform>> = SystemState::new(&mut world);
             let mut transforms = system_state.get_mut(&mut world);
             let mut transform = transforms.get_mut(this.entity()).unwrap();
             transform.translation.x = value;
@@ -123,8 +117,7 @@ impl UserDataComponent for Transform {
         fields.add_field_method_get("y", |ctx, this| {
             let world = ctx.get_world()?;
             let mut world = world.write();
-            let mut system_state: SystemState<Query<&mut Transform>> =
-                SystemState::new(&mut world);
+            let mut system_state: SystemState<Query<&mut Transform>> = SystemState::new(&mut world);
             let mut transforms = system_state.get_mut(&mut world);
             let transform = transforms.get_mut(this.entity()).unwrap();
             Ok(transform.translation.y)
@@ -133,8 +126,7 @@ impl UserDataComponent for Transform {
         fields.add_field_method_set("y", |ctx, this, value: f32| {
             let world = ctx.get_world()?;
             let mut world = world.write();
-            let mut system_state: SystemState<Query<&mut Transform>> =
-                SystemState::new(&mut world);
+            let mut system_state: SystemState<Query<&mut Transform>> = SystemState::new(&mut world);
             let mut transforms = system_state.get_mut(&mut world);
             let mut transform = transforms.get_mut(this.entity()).unwrap();
             transform.translation.y = value;
@@ -153,8 +145,7 @@ impl UserDataComponent for Transform {
         fields.add_field_method_set("z", |ctx, this, value: f32| {
             let world = ctx.get_world()?;
             let mut world = world.write();
-            let mut system_state: SystemState<Query<&mut Transform>> =
-                SystemState::new(&mut world);
+            let mut system_state: SystemState<Query<&mut Transform>> = SystemState::new(&mut world);
             let mut transforms = system_state.get_mut(&mut world);
             let mut transform = transforms.get_mut(this.entity()).unwrap();
             transform.translation.z = value;
@@ -164,15 +155,15 @@ impl UserDataComponent for Transform {
         fields.add_field_method_set("parent", |ctx, this, parent: LuaEntity| {
             let world = ctx.get_world()?;
             let mut world = world.write();
-            let cmd = PushChildInPlace { child: this.entity(), parent: parent.inner()? };
+            let cmd = PushChildInPlace {
+                child: this.entity(),
+                parent: parent.inner()?,
+            };
             cmd.apply(&mut world);
             Ok(())
         });
 
-        fields.add_field_method_get("entity", |ctx, this| {
-            Ok(LuaEntity::new(this.entity()))
-        });
-
+        fields.add_field_method_get("entity", |ctx, this| Ok(LuaEntity::new(this.entity())));
     }
 }
 
@@ -255,8 +246,7 @@ impl UserData for N9Sprite {
         fields.add_field_method_set("anchor", |ctx, this, value: [f32; 2]| {
             let world = ctx.get_world()?;
             let mut world = world.write();
-            let mut system_state: SystemState<Query<&mut Sprite>> =
-                SystemState::new(&mut world);
+            let mut system_state: SystemState<Query<&mut Sprite>> = SystemState::new(&mut world);
             let mut query = system_state.get_mut(&mut world);
             let mut item = query.get_mut(this.entity).unwrap();
             item.anchor = Anchor::Custom(Vec2::new(value[0] / 2.0, value[1] / 2.0));
@@ -266,10 +256,15 @@ impl UserData for N9Sprite {
         fields.add_field_method_set("vis", |ctx, this, value: bool| {
             let world = ctx.get_world()?;
             let mut world = world.write();
-            let mut system_state: SystemState<Query<&mut Visibility>> = SystemState::new(&mut world);
+            let mut system_state: SystemState<Query<&mut Visibility>> =
+                SystemState::new(&mut world);
             let mut query = system_state.get_mut(&mut world);
             let mut item = query.get_mut(this.entity).unwrap();
-            *item = if value { Visibility::Visible } else { Visibility::Hidden };
+            *item = if value {
+                Visibility::Visible
+            } else {
+                Visibility::Hidden
+            };
             Ok(())
         });
 
@@ -280,7 +275,10 @@ impl UserData for N9Sprite {
                 SystemState::new(&mut world);
             let (query,) = system_state.get_mut(&mut world);
             let mut item = query.get(this.entity).unwrap();
-            Ok(N9Image { handle: item.clone(), layout: None }) //.ok_or(LuaError::RuntimeError("No such image".into()))
+            Ok(N9Image {
+                handle: item.clone(),
+                layout: None,
+            }) //.ok_or(LuaError::RuntimeError("No such image".into()))
         });
     }
 

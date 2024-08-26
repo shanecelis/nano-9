@@ -1,27 +1,24 @@
-
-use bevy::{
-    prelude::*,
-};
-mod sprite;
-mod palette;
+use bevy::prelude::*;
 pub mod api;
+mod assets;
+mod audio;
+mod camera;
+mod error;
+mod image;
+mod palette;
 mod pixel;
 mod plugin;
-mod assets;
-mod image;
-mod audio;
-mod text;
-mod error;
-mod camera;
 pub mod screens;
+mod sprite;
+mod text;
 
-pub use plugin::*;
-pub use sprite::*;
+pub use audio::*;
+pub use camera::*;
 pub use image::*;
 pub use palette::*;
-pub use audio::*;
+pub use plugin::*;
+pub use sprite::*;
 pub use text::*;
-pub use camera::*;
 
 #[derive(thiserror::Error, Debug)]
 pub enum N9Error {
@@ -30,7 +27,6 @@ pub enum N9Error {
 }
 
 pub(crate) fn plugin(app: &mut App) {
-
     // Add other plugins.
     app.add_plugins((
         // demo::plugin,
@@ -45,9 +41,7 @@ pub(crate) fn plugin(app: &mut App) {
         // audio::plugin,
     ));
 
-
     // Enable dev tools for dev builds.
     // #[cfg(feature = "dev")]
     // app.add_plugins(dev_tools::plugin);
 }
-

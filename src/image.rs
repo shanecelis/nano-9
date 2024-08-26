@@ -1,20 +1,10 @@
-use bevy::{
-    ecs::system::SystemState,
-    prelude::*,
-};
+use bevy::{ecs::system::SystemState, prelude::*};
 
+use crate::{api::MyHandle, palette::Nano9Palette, pixel::PixelAccess, DropPolicy, N9Sprite};
 use bevy_mod_scripting::lua::prelude::tealr::mlu::mlua::{
     UserData, UserDataFields, UserDataMethods,
 };
 use bevy_mod_scripting::prelude::*;
-use crate::{
-    api::MyHandle,
-    DropPolicy,
-
-    N9Sprite,
-    palette::Nano9Palette,
-    pixel::PixelAccess,
-};
 
 #[derive(Clone)]
 pub struct N9ImageLoader;
@@ -40,12 +30,13 @@ impl UserData for N9ImageLoader {
         methods.add_method_mut("load", |ctx, this, path: String| {
             let world = ctx.get_world()?;
             let mut world = world.write();
-            let mut system_state: SystemState<(
-                Res<AssetServer>,
-            )> = SystemState::new(&mut world);
-            let (server,) = system_state.get(& world);
+            let mut system_state: SystemState<(Res<AssetServer>,)> = SystemState::new(&mut world);
+            let (server,) = system_state.get(&world);
             let handle: Handle<Image> = server.load(&path);
-            Ok(N9Image { handle, layout: None })
+            Ok(N9Image {
+                handle,
+                layout: None,
+            })
         });
     }
 }
@@ -76,7 +67,6 @@ impl FromLua<'_> for N9Image {
 }
 
 impl UserData for N9Image {
-
     // fn add_fields<'lua, F: UserDataFields<'lua, Self>>(fields: &mut F) {
     //     fields.add_field_method_get("x", |ctx, this| {
     //         Ok(())
@@ -84,16 +74,24 @@ impl UserData for N9Image {
     // }
 
     fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
-
-        methods.add_method_mut("set_grid", |ctx, this, (width, height, columns, rows): (f32, f32, usize, usize)| {
-            let world = ctx.get_world()?;
-            let mut world = world.write();
-            let mut system_state: SystemState<ResMut<Assets<TextureAtlasLayout>>> =
-                SystemState::new(&mut world);
-            let mut layouts = system_state.get_mut(&mut world);
-            this.layout = Some(layouts.add(TextureAtlasLayout::from_grid(Vec2::new(width, height), columns, rows, None, None)));
-            Ok(())
-        });
+        methods.add_method_mut(
+            "set_grid",
+            |ctx, this, (width, height, columns, rows): (f32, f32, usize, usize)| {
+                let world = ctx.get_world()?;
+                let mut world = world.write();
+                let mut system_state: SystemState<ResMut<Assets<TextureAtlasLayout>>> =
+                    SystemState::new(&mut world);
+                let mut layouts = system_state.get_mut(&mut world);
+                this.layout = Some(layouts.add(TextureAtlasLayout::from_grid(
+                    Vec2::new(width, height),
+                    columns,
+                    rows,
+                    None,
+                    None,
+                )));
+                Ok(())
+            },
+        );
 
         methods.add_method_mut("spr", |ctx, this, mut args: LuaMultiValue| {
             let world = ctx.get_world()?;
@@ -109,30 +107,30 @@ impl UserData for N9Image {
             // eprintln!("x {x} y {y}");
             if let Some(n) = n {
                 Ok(N9Sprite {
-                    entity:
-                    world.spawn((
-                        SpriteBundle {
-                            texture: this.handle.clone(),
-                            transform: Transform::from_xyz(x, y, 0.0),
-                            ..default()
-                        },
-                        TextureAtlas {
-                            layout: this.layout.clone().unwrap(),
-                            index: n
-                        },
-                        )).id(),
+                    entity: world
+                        .spawn((
+                            SpriteBundle {
+                                texture: this.handle.clone(),
+                                transform: Transform::from_xyz(x, y, 0.0),
+                                ..default()
+                            },
+                            TextureAtlas {
+                                layout: this.layout.clone().unwrap(),
+                                index: n,
+                            },
+                        ))
+                        .id(),
                     drop: DropPolicy::Despawn,
                 })
             } else {
                 Ok(N9Sprite {
-                    entity:
-                    world.spawn((
-                        SpriteBundle {
+                    entity: world
+                        .spawn((SpriteBundle {
                             texture: this.handle.clone(),
                             transform: Transform::from_xyz(x, y, 0.0),
                             ..default()
-                        },
-                        )).id(),
+                        },))
+                        .id(),
                     drop: DropPolicy::Despawn,
                 })
             }
@@ -142,9 +140,8 @@ impl UserData for N9Image {
             let world = ctx.get_world()?;
             let mut world = world.write();
             let color = Nano9Palette::get_color(c, &mut world);
-            let mut system_state: SystemState<(
-                ResMut<Assets<Image>>,
-            )> = SystemState::new(&mut world);
+            let mut system_state: SystemState<(ResMut<Assets<Image>>,)> =
+                SystemState::new(&mut world);
             let (mut images,) = system_state.get_mut(&mut world);
             let image = images.get_mut(&this.handle).unwrap();
             let height = image.texture_descriptor.size.height;

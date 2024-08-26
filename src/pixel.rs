@@ -1,13 +1,13 @@
 //! get_pixel, set_pixel operations for Image
 //!
 use bevy::render::{
-    render_resource::{TextureFormat, Extent3d},
-    texture::{Image, TextureFormatPixelInfo}
+    render_resource::{Extent3d, TextureFormat},
+    texture::{Image, TextureFormatPixelInfo},
 };
 
 // use bevy::color::{Color, ColorToComponents, ColorToPacked, LinearRgba, Srgba};
-use bevy::prelude::Color;
 use bevy::math::UVec2;
+use bevy::prelude::Color;
 use thiserror::Error;
 
 #[derive(Error, Debug, PartialEq, Eq)]
@@ -25,7 +25,7 @@ pub enum PixelError {
     #[error("invalid range")]
     InvalidRange,
     #[error("given image width cannot cleanly divide pixel count to determine image height")]
-    WidthNotDivisible
+    WidthNotDivisible,
 }
 
 pub enum PixelLoc {
@@ -67,7 +67,6 @@ impl From<UVec2> for PixelLoc {
 }
 
 pub trait PixelAccess {
-
     fn get_pixel(&self, location: impl Into<PixelLoc>) -> Result<Color, PixelError>;
 
     fn set_pixel(
@@ -76,16 +75,12 @@ pub trait PixelAccess {
         color: impl Into<Color>,
     ) -> Result<(), PixelError>;
 
-    fn set_pixels<F: FnMut(usize, usize) -> Color>(
-        &mut self,
-        f: F
-    ) -> Result<(), PixelError>;
+    fn set_pixels<F: FnMut(usize, usize) -> Color>(&mut self, f: F) -> Result<(), PixelError>;
 
     // fn from_pixels<C: Into<LinearRgba> + Copy>(colors: &[C], image_width_pixels: usize) -> Result<Self, PixelError> {
 }
 
 impl PixelAccess for Image {
-
     fn get_pixel(&self, location: impl Into<PixelLoc>) -> Result<Color, PixelError> {
         use TextureFormat::*;
         let image_size: Extent3d = self.texture_descriptor.size;
@@ -135,7 +130,9 @@ impl PixelAccess for Image {
                 let mut a = [0u8; 4];
                 a.copy_from_slice(&self.data[start..start + pixel_size]);
                 // Ok(LinearRgba::from_u8_array(a).into())
-                Ok(Color::rgba_linear_from_array(a.map(|x| x as f32 / u8::MAX as f32)))
+                Ok(Color::rgba_linear_from_array(
+                    a.map(|x| x as f32 / u8::MAX as f32),
+                ))
             }
             Rgba8UnormSrgb => {
                 let mut a = [0u8; 4];
@@ -157,14 +154,11 @@ impl PixelAccess for Image {
         }
     }
 
-    fn set_pixels<F: FnMut(usize, usize) -> Color>(
-        &mut self,
-        mut f: F
-    ) -> Result<(), PixelError> {
+    fn set_pixels<F: FnMut(usize, usize) -> Color>(&mut self, mut f: F) -> Result<(), PixelError> {
         let image_size: Extent3d = self.texture_descriptor.size;
         for i in 0..image_size.width as usize {
             for j in 0..image_size.height as usize {
-                self.set_pixel((i,j), f(i,j))?;
+                self.set_pixel((i, j), f(i, j))?;
             }
         }
         Ok(())
@@ -184,7 +178,8 @@ impl PixelAccess for Image {
         let start = location
             .into()
             .index(&image_size)
-            .ok_or(PixelError::InvalidLocation)? * pixel_size;
+            .ok_or(PixelError::InvalidLocation)?
+            * pixel_size;
 
         // dbg!(start);
         match format {

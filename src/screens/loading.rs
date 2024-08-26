@@ -4,9 +4,7 @@
 use bevy::{prelude::*, utils::HashMap};
 
 use super::Screen;
-use crate::{
-    assets::{ImageHandles},
-};
+use crate::assets::ImageHandles;
 
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(OnEnter(Screen::Loading), show_loading_screen);
@@ -32,8 +30,8 @@ fn all_assets_loaded(
     // bgm_handles: Res<BgmHandles>,
 ) -> bool {
     image_handles.all_loaded(&asset_server)
-        // && sfx_handles.all_loaded(&asset_server)
-        // && bgm_handles.all_loaded(&asset_server)
+    // && sfx_handles.all_loaded(&asset_server)
+    // && bgm_handles.all_loaded(&asset_server)
 }
 
 fn continue_to_title(mut next_screen: ResMut<NextState<Screen>>) {

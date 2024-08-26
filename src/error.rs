@@ -1,17 +1,8 @@
-use bevy::{
-    prelude::*,
-    window::RequestRedraw,
-    core::FrameCount,
-};
-use bevy_mod_scripting::{
-    prelude::*,
-    core::event::ScriptLoaded,
-};
+use bevy::{core::FrameCount, prelude::*, window::RequestRedraw};
+use bevy_mod_scripting::{core::event::ScriptLoaded, prelude::*};
 
 pub(crate) fn plugin(app: &mut App) {
-
-    app
-        .init_state::<ErrorState>()
+    app.init_state::<ErrorState>()
         .add_systems(OnEnter(ErrorState::Empty), hide::<ErrorMessages>)
         .add_systems(OnExit(ErrorState::Empty), show::<ErrorMessages>)
         .add_systems(Startup, spawn_error_message_layout)
@@ -27,7 +18,9 @@ const LEFT_PADDING: Val = Val::Px(10.);
 enum ErrorState {
     #[default]
     Empty,
-    Messages { frame: u32 }
+    Messages {
+        frame: u32,
+    },
 }
 
 #[derive(Component)]
@@ -72,8 +65,8 @@ fn spawn_error_message_layout(mut commands: Commands) {
                 ..Default::default()
             },
             ..Default::default()
-        },
-        )).with_children(|parent| {
+        },))
+        .with_children(|parent| {
             parent.spawn((NodeBundle {
                     // visibility: Visibility::Hidden,
                     style: Style {
@@ -102,7 +95,7 @@ fn spawn_error_message_layout(mut commands: Commands) {
                 // })
 
                 ;
-                // .with_background_color(Color::RED));
+            // .with_background_color(Color::RED));
         });
 }
 
@@ -111,30 +104,31 @@ pub fn add_messages(
     query: Query<Entity, With<ErrorMessages>>,
     frame_count: Res<FrameCount>,
     mut state: ResMut<NextState<ErrorState>>,
-    mut commands: Commands
+    mut commands: Commands,
 ) {
     if r.is_empty() {
         return;
     }
     let id = query.single();
-    commands.entity(id)
-            .with_children(|parent| {
-                for e in r.read() {
-                    // eprintln!("XXXX\n\n err {}", e.error);
+    commands.entity(id).with_children(|parent| {
+        for e in r.read() {
+            // eprintln!("XXXX\n\n err {}", e.error);
 
-                    let error_style: TextStyle = TextStyle {
-                        font_size: FONT_SIZE,
-                        ..default()
-                    };
-                    let msg = match &e.error {
-                        ScriptError::FailedToLoad { script, msg } => msg.clone(),
-                        x => format!("{}", x),
-                    };
-                    parent.spawn(TextBundle::from_section(msg, error_style));
-                }
-            });
+            let error_style: TextStyle = TextStyle {
+                font_size: FONT_SIZE,
+                ..default()
+            };
+            let msg = match &e.error {
+                ScriptError::FailedToLoad { script, msg } => msg.clone(),
+                x => format!("{}", x),
+            };
+            parent.spawn(TextBundle::from_section(msg, error_style));
+        }
+    });
 
-    state.set(ErrorState::Messages { frame: frame_count.0 });
+    state.set(ErrorState::Messages {
+        frame: frame_count.0,
+    });
 }
 
 pub fn clear_messages(
@@ -143,7 +137,7 @@ pub fn clear_messages(
     frame_count: Res<FrameCount>,
     state: Res<State<ErrorState>>,
     mut next_state: ResMut<NextState<ErrorState>>,
-    mut commands: Commands
+    mut commands: Commands,
 ) {
     if r.is_empty() {
         return;
@@ -155,8 +149,7 @@ pub fn clear_messages(
         }
     }
     let id = query.single();
-    commands.entity(id)
-        .despawn_descendants();
+    commands.entity(id).despawn_descendants();
 
     next_state.set(ErrorState::Empty);
 }

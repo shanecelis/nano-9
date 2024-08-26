@@ -1,6 +1,6 @@
 use bevy::{
-    ecs::system::{Command, SystemState, CommandQueue},
     audio::PlaybackMode,
+    ecs::system::{Command, CommandQueue, SystemState},
     prelude::*,
 };
 
@@ -28,7 +28,9 @@ pub(crate) fn plugin(app: &mut App) {
 }
 
 pub fn reserve_entities(world: &mut World) {
-    let Some(mut entities) = reserved_entities() else { return };
+    let Some(mut entities) = reserved_entities() else {
+        return;
+    };
     let delta = RESERVE_ENTITY_COUNT - entities.len();
     if delta > 0 {
         for e in world.entities().reserve_entities(delta as u32) {
@@ -38,7 +40,9 @@ pub fn reserve_entities(world: &mut World) {
 }
 
 pub fn run_deferred_commands(world: &mut World) {
-    let Some(mut commands) = deferred_commands() else { return };
+    let Some(mut commands) = deferred_commands() else {
+        return;
+    };
     commands.apply(world);
 }
 
@@ -65,31 +69,24 @@ struct Print(Entity, String, TextStyle);
 
 impl Command for Print {
     fn apply(self, world: &mut World) {
-        world.entity_mut(self.0)
-             .insert(Text2dBundle {
-                 text: Text::from_section(self.1, self.2),
-                 ..default()
-             });
+        world.entity_mut(self.0).insert(Text2dBundle {
+            text: Text::from_section(self.1, self.2),
+            ..default()
+        });
     }
 }
 
 impl UserData for N9TextLoader {
-
     fn add_fields<'lua, F: UserDataFields<'lua, Self>>(fields: &mut F) {
-        fields.add_field_method_get("default", |ctx, this| {
-            Ok(N9TextStyle::default())
-        });
+        fields.add_field_method_get("default", |ctx, this| Ok(N9TextStyle::default()));
     }
 
     fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
-
         methods.add_method_mut("load", |ctx, this, path: String| {
             let world = ctx.get_world()?;
             let mut world = world.write();
-            let mut system_state: SystemState<(
-                Res<AssetServer>,
-            )> = SystemState::new(&mut world);
-            let (server,) = system_state.get(& world);
+            let mut system_state: SystemState<(Res<AssetServer>,)> = SystemState::new(&mut world);
+            let (server,) = system_state.get(&world);
             let font: Handle<Font> = server.load(&path);
             Ok(N9TextStyle(TextStyle { font, ..default() }))
         });
@@ -97,15 +94,16 @@ impl UserData for N9TextLoader {
         methods.add_method_mut("print", |ctx, this, str: String| {
             if let Ok(world) = ctx.get_world() {
                 let mut world = world.write();
-                let id = world.spawn(Text2dBundle {
-                    text: Text::from_section(str, TextStyle::default()),
-                    ..default()
-                }).id();
+                let id = world
+                    .spawn(Text2dBundle {
+                        text: Text::from_section(str, TextStyle::default()),
+                        ..default()
+                    })
+                    .id();
             } else {
                 if let Some(entities) = reserved_entities() {
                     if let Some(id) = entities.pop() {
-                        deferred_commands().map(|c|
-                            c.push(Print(id, str, TextStyle::default())));
+                        deferred_commands().map(|c| c.push(Print(id, str, TextStyle::default())));
                     } else {
                         warn!("Ran out of reserved entities.");
                     }
@@ -133,10 +131,12 @@ impl UserData for N9TextStyle {
         methods.add_method_mut("print", |ctx, this, str: String| {
             let world = ctx.get_world()?;
             let mut world = world.write();
-            let id = world.spawn(Text2dBundle {
-                text: Text::from_section(str, this.0.clone()),
-                ..default()
-            }).id();
+            let id = world
+                .spawn(Text2dBundle {
+                    text: Text::from_section(str, this.0.clone()),
+                    ..default()
+                })
+                .id();
             Ok(())
         });
     }

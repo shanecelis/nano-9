@@ -1,25 +1,14 @@
-
-use bevy::{
-    ecs::system::SystemState,
-    prelude::*,
-};
+use bevy::{ecs::system::SystemState, prelude::*};
 
 use bevy_mod_scripting::prelude::*;
 // use bevy_pixel_buffer::prelude::*;
-use crate::{
-    DrawState,
-    assets::{ImageHandles},
-    pixel::PixelAccess,
-};
+use crate::{assets::ImageHandles, pixel::PixelAccess, DrawState};
 
 pub fn plugin(app: &mut App) {
     app.add_systems(Startup, setup);
-
 }
 
-fn setup(mut commands: Commands,
-    image_handles: Res<ImageHandles>,
-) {
+fn setup(mut commands: Commands, image_handles: Res<ImageHandles>) {
     commands.insert_resource(Nano9Palette(
         image_handles
             .get(ImageHandles::PICO8_PALETTE)
@@ -37,11 +26,11 @@ impl Nano9Palette {
             SystemState::new(world);
         let (palette, images, draw_state) = system_state.get(world);
         match c {
-            Value::Integer(n) => {
-                images.get(&palette.0)
-                      .and_then(|pal| pal.get_pixel(n as usize).ok()).unwrap_or(draw_state.pen)
-            }
-            _ => draw_state.pen
+            Value::Integer(n) => images
+                .get(&palette.0)
+                .and_then(|pal| pal.get_pixel(n as usize).ok())
+                .unwrap_or(draw_state.pen),
+            _ => draw_state.pen,
         }
     }
 }

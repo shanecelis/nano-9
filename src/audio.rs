@@ -1,19 +1,11 @@
-use bevy::{
-    ecs::system::SystemState,
-    audio::PlaybackMode,
-    prelude::*,
-};
+use bevy::{audio::PlaybackMode, ecs::system::SystemState, prelude::*};
 
 use bevy_mod_scripting::lua::prelude::tealr::mlu::mlua::{
     UserData, UserDataFields, UserDataMethods,
 };
 use bevy_mod_scripting::prelude::*;
 // use bevy_pixel_buffer::prelude::*;
-use crate::{
-    api::MyHandle,
-    palette::Nano9Palette,
-    despawn_list,
-};
+use crate::{api::MyHandle, despawn_list, palette::Nano9Palette};
 
 #[derive(Clone)]
 pub struct N9AudioLoader;
@@ -27,16 +19,12 @@ impl FromLua<'_> for N9AudioLoader {
 }
 
 impl UserData for N9AudioLoader {
-
     fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
-
         methods.add_method_mut("load", |ctx, this, path: String| {
             let world = ctx.get_world()?;
             let mut world = world.write();
-            let mut system_state: SystemState<(
-                Res<AssetServer>,
-            )> = SystemState::new(&mut world);
-            let (server,) = system_state.get(& world);
+            let mut system_state: SystemState<(Res<AssetServer>,)> = SystemState::new(&mut world);
+            let (server,) = system_state.get(&world);
             let handle: Handle<AudioSource> = server.load(&path);
             Ok(N9Audio { handle })
         });
@@ -58,7 +46,6 @@ impl FromLua<'_> for N9Audio {
 }
 
 impl UserData for N9Audio {
-
     // fn add_fields<'lua, F: UserDataFields<'lua, Self>>(fields: &mut F) {
     //     fields.add_field_method_get("x", |ctx, this| {
     //         Ok(())
@@ -66,29 +53,32 @@ impl UserData for N9Audio {
     // }
 
     fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
-
         methods.add_method_mut("sfx", |ctx, this, _: ()| {
             let world = ctx.get_world()?;
             let mut world = world.write();
-            let id = world.spawn(AudioBundle {
-                source: this.handle.clone(),
-                settings: PlaybackSettings {
-                    mode: PlaybackMode::Despawn,
-                    ..default()
-                }
-            }).id();
+            let id = world
+                .spawn(AudioBundle {
+                    source: this.handle.clone(),
+                    settings: PlaybackSettings {
+                        mode: PlaybackMode::Despawn,
+                        ..default()
+                    },
+                })
+                .id();
             Ok(N9Sound(id))
         });
         methods.add_method_mut("play_loop", |ctx, this, _: ()| {
             let world = ctx.get_world()?;
             let mut world = world.write();
-            let id = world.spawn(AudioBundle {
-                source: this.handle.clone(),
-                settings: PlaybackSettings {
-                    mode: PlaybackMode::Loop,
-                    ..default()
-                }
-            }).id();
+            let id = world
+                .spawn(AudioBundle {
+                    source: this.handle.clone(),
+                    settings: PlaybackSettings {
+                        mode: PlaybackMode::Loop,
+                        ..default()
+                    },
+                })
+                .id();
             Ok(N9Sound(id))
         });
     }
@@ -151,7 +141,10 @@ impl UserData for N9Sound {
             let mut world = world.write();
             let mut system_state: SystemState<Query<&AudioSink>> = SystemState::new(&mut world);
             let query = system_state.get(&mut world);
-            Ok(query.get(this.0).map(|sink| !sink.is_paused() && !sink.empty()).unwrap_or(false))
+            Ok(query
+                .get(this.0)
+                .map(|sink| !sink.is_paused() && !sink.empty())
+                .unwrap_or(false))
         });
 
         fields.add_field_method_get("pause", |ctx, this| {

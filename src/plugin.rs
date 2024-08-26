@@ -10,22 +10,13 @@ use bevy::{
         texture::ImageSampler,
     },
     utils::Duration,
-    window::{PresentMode, WindowMode, PrimaryWindow, WindowResized, WindowResolution},
+    window::{PresentMode, PrimaryWindow, WindowMode, WindowResized, WindowResolution},
 };
 
 use bevy_asset_loader::prelude::*;
-use bevy_mod_scripting::{
-    prelude::*,
-    core::event::ScriptLoaded,
-};
+use bevy_mod_scripting::{core::event::ScriptLoaded, prelude::*};
 // use bevy_pixel_buffer::prelude::*;
-use crate::{
-    assets::{ImageHandles},
-    api::N9Arg,
-    screens,
-    DropPolicy,
-    N9Image,
-};
+use crate::{api::N9Arg, assets::ImageHandles, screens, DropPolicy, N9Image};
 
 #[derive(AssetCollection, Resource)]
 struct ImageAssets {
@@ -48,8 +39,6 @@ pub struct DrawState {
     pub camera_position: Vec2,
     pub print_cursor: Vec2,
 }
-
-
 
 #[derive(Reflect, Resource)]
 #[reflect(Resource)]
@@ -102,7 +91,11 @@ pub fn set_background(
         events.send(
             LuaEvent {
                 hook_name: "_set_global".to_owned(),
-                args: N9Arg::SetSprite { name: "background".into(), sprite: id, drop: DropPolicy::Nothing },
+                args: N9Arg::SetSprite {
+                    name: "background".into(),
+                    sprite: id,
+                    drop: DropPolicy::Nothing,
+                },
                 recipients: Recipients::All,
             },
             0,
@@ -110,43 +103,55 @@ pub fn set_background(
     }
 }
 
-fn spawn_camera(mut commands: Commands,
+fn spawn_camera(
+    mut commands: Commands,
     settings: Res<N9Settings>,
     mut events: PriorityEventWriter<LuaEvent<N9Arg>>,
-                screen: Res<Nano9Screen>
+    screen: Res<Nano9Screen>,
 ) {
-
     let mut camera_bundle = Camera2dBundle::default();
     camera_bundle.transform = Transform::from_xyz(64.0, 64.0, 0.0);
     // camera_bundle.projection.scaling_mode = ScalingMode::FixedVertical(512.0);
     camera_bundle.projection.scaling_mode = ScalingMode::WindowSize(settings.pixel_scale);
 
-    let id = commands.spawn((camera_bundle,
-                    IsDefaultUiCamera,
-InheritedVisibility::default()
-    )).with_children(|parent| {
-        parent
-            .spawn((SpriteBundle {
-                // transform: Transform::from_xyz(64.0, 64.0, -1.0),
-                transform: Transform::from_xyz(0.0, 0.0, -100.0),
-                texture: screen.0.clone(),
-                ..default()
-            },Nano9Sprite));
-    })
-      .id();
+    let id = commands
+        .spawn((
+            camera_bundle,
+            IsDefaultUiCamera,
+            InheritedVisibility::default(),
+        ))
+        .with_children(|parent| {
+            parent.spawn((
+                SpriteBundle {
+                    // transform: Transform::from_xyz(64.0, 64.0, -1.0),
+                    transform: Transform::from_xyz(0.0, 0.0, -100.0),
+                    texture: screen.0.clone(),
+                    ..default()
+                },
+                Nano9Sprite,
+            ));
+        })
+        .id();
     events.send(
         LuaEvent {
             hook_name: "_set_global".to_owned(),
-            args: N9Arg::SetCamera { name: "camera".into(), camera: id },
+            args: N9Arg::SetCamera {
+                name: "camera".into(),
+                camera: id,
+            },
             recipients: Recipients::All,
         },
         0,
     )
 }
 
-pub fn fullscreen_key(input: Res<ButtonInput<KeyCode>>,
-                       mut primary_windows: Query<&mut Window, With<PrimaryWindow>>) {
-    if input.just_pressed(KeyCode::Enter) && input.any_pressed([KeyCode::AltLeft, KeyCode::AltRight]) {
+pub fn fullscreen_key(
+    input: Res<ButtonInput<KeyCode>>,
+    mut primary_windows: Query<&mut Window, With<PrimaryWindow>>,
+) {
+    if input.just_pressed(KeyCode::Enter)
+        && input.any_pressed([KeyCode::AltLeft, KeyCode::AltRight])
+    {
         use WindowMode::*;
         let mut primary_window = primary_windows.single_mut();
         primary_window.mode = match primary_window.mode {
@@ -161,7 +166,7 @@ pub fn sync_window_size(
     mut settings: ResMut<N9Settings>,
     // mut query: Query<&mut Sprite, With<Nano9Sprite>>,
     primary_windows: Query<&Window, With<PrimaryWindow>>,
-    mut orthographic: Query<&mut OrthographicProjection, With<Camera>>
+    mut orthographic: Query<&mut OrthographicProjection, With<Camera>>,
 ) {
     if let Some(e) = resize_event
         .read()
@@ -245,12 +250,11 @@ pub fn send_draw(mut events: PriorityEventWriter<LuaEvent<N9Arg>>) {
     )
 }
 
-
 const UPDATE_FREQUENCY: f32 = 1.0 / 60.0;
 
 #[derive(Default)]
 pub struct Nano9Plugin {
-    settings: N9Settings
+    settings: N9Settings,
 }
 
 #[derive(Resource)]
@@ -305,12 +309,16 @@ impl Plugin for Nano9Plugin {
         .init_resource::<N9Settings>()
         .init_resource::<DrawState>()
         .add_plugins(crate::plugin)
-
         // .add_systems(OnExit(screens::Screen::Loading), setup_image)
         .add_systems(Startup, (setup_image, spawn_camera, set_background).chain())
         // .add_systems(OnEnter(screens::Screen::Playing), send_init)
         // .add_systems(PreUpdate, send_init.run_if(on_asset_modified::<LuaFile>()))
-        .add_systems(PreUpdate, (set_background, send_init).chain().run_if(on_event::<ScriptLoaded>()))
+        .add_systems(
+            PreUpdate,
+            (set_background, send_init)
+                .chain()
+                .run_if(on_event::<ScriptLoaded>()),
+        )
         // .add_systems(PreUpdate, (send_init).chain().run_if(on_event::<ScriptLoaded>()))
         .add_systems(Update, sync_window_size)
         .add_systems(Update, fullscreen_key)
@@ -327,5 +335,9 @@ pub fn on_asset_modified<T: Asset>() -> impl FnMut(EventReader<AssetEvent<T>>) -
     // calls of the run condition. Simply checking `is_empty` would not be enough.
     // PERF: note that `count` is efficient (not actually looping/iterating),
     // due to Bevy having a specialized implementation for events.
-    move |mut reader: EventReader<AssetEvent<T>>| reader.read().any(|e| matches!(e, AssetEvent::Modified { .. }))
+    move |mut reader: EventReader<AssetEvent<T>>| {
+        reader
+            .read()
+            .any(|e| matches!(e, AssetEvent::Modified { .. }))
+    }
 }

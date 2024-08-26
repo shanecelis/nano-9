@@ -1,6 +1,6 @@
 //! The screen state for the main game loop.
 
-use bevy::{prelude::*};
+use bevy::prelude::*;
 
 // use crate::{assets::BgmHandles, audio::bgm::BgmCommands as _, demo::level::SpawnLevel};
 
