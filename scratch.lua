@@ -11,3 +11,9 @@ function _init()
     -- sprite.y = 64
     -- pixie:spr()
 end
+
+x = 0
+function _update()
+    background.image:set_pixel(x, x)
+    x = x + 1
+end

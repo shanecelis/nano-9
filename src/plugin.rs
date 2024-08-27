@@ -102,6 +102,25 @@ pub fn set_background(
     }
 }
 
+pub fn set_camera(
+    camera: Query<Entity, With<Camera>>,
+    mut events: PriorityEventWriter<LuaEvent<N9Arg>>,
+) {
+    if let Ok(id) = camera.get_single() {
+        events.send(
+            LuaEvent {
+                hook_name: "_set_global".to_owned(),
+                args: N9Arg::SetCamera {
+                    name: "camera".into(),
+                    camera: id,
+                },
+                recipients: Recipients::All,
+            },
+            0,
+        )
+    }
+}
+
 fn spawn_camera(
     mut commands: Commands,
     settings: Res<N9Settings>,
@@ -113,7 +132,7 @@ fn spawn_camera(
     // camera_bundle.projection.scaling_mode = ScalingMode::FixedVertical(512.0);
     camera_bundle.projection.scaling_mode = ScalingMode::WindowSize(settings.pixel_scale);
 
-    let id = commands
+    commands
         .spawn((
             camera_bundle,
             IsDefaultUiCamera,
@@ -129,19 +148,7 @@ fn spawn_camera(
                 },
                 Nano9Sprite,
             ));
-        })
-        .id();
-    events.send(
-        LuaEvent {
-            hook_name: "_set_global".to_owned(),
-            args: N9Arg::SetCamera {
-                name: "camera".into(),
-                camera: id,
-            },
-            recipients: Recipients::All,
-        },
-        0,
-    )
+        });
 }
 
 pub fn fullscreen_key(
@@ -309,12 +316,12 @@ impl Plugin for Nano9Plugin {
         .init_resource::<DrawState>()
         .add_plugins(crate::plugin)
         // .add_systems(OnExit(screens::Screen::Loading), setup_image)
-        .add_systems(Startup, (setup_image, spawn_camera, set_background).chain())
+        .add_systems(Startup, (setup_image, set_background, spawn_camera, set_camera).chain())
         // .add_systems(OnEnter(screens::Screen::Playing), send_init)
         // .add_systems(PreUpdate, send_init.run_if(on_asset_modified::<LuaFile>()))
         .add_systems(
             PreUpdate,
-            (set_background, send_init)
+            (set_background, set_camera, send_init)
                 .chain()
                 .run_if(on_event::<ScriptLoaded>()),
         )
