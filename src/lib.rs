@@ -11,6 +11,8 @@ mod plugin;
 pub mod screens;
 mod sprite;
 mod text;
+mod color;
+mod ext;
 
 pub use audio::*;
 pub use camera::*;
@@ -19,6 +21,8 @@ pub use palette::*;
 pub use plugin::*;
 pub use sprite::*;
 pub use text::*;
+pub use ext::*;
+pub use color::*;
 
 #[derive(thiserror::Error, Debug)]
 pub enum N9Error {

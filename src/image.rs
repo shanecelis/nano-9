@@ -1,10 +1,11 @@
 use bevy::{ecs::system::SystemState, prelude::*};
 
-use crate::{palette::Nano9Palette, pixel::PixelAccess, DropPolicy, N9Sprite};
+use crate::{palette::Nano9Palette, pixel::PixelAccess, DropPolicy, N9Sprite, ValueExt, N9Color};
 use bevy_mod_scripting::lua::prelude::tealr::mlu::mlua::{
     UserData, UserDataMethods,
 };
 use bevy_mod_scripting::prelude::*;
+
 
 #[derive(Clone)]
 pub struct N9ImageLoader;
@@ -38,16 +39,6 @@ impl UserData for N9ImageLoader {
                 layout: None,
             })
         });
-    }
-}
-
-pub trait ValueExt {
-    fn to_f32(&self) -> Option<f32>;
-}
-
-impl ValueExt for Value<'_> {
-    fn to_f32(&self) -> Option<f32> {
-        self.as_f32().or(self.as_integer().map(|x| x as f32))
     }
 }
 
@@ -136,10 +127,13 @@ impl UserData for N9Image {
             }
         });
 
-        methods.add_method_mut("set_pixel", |ctx, this, (x, y, c): (f32, f32, Value)| {
+        methods.add_method_mut("set_pixel", |ctx, this, (x, y, c): (f32, f32, N9Color)| {
             let world = ctx.get_world()?;
             let mut world = world.write();
-            let color = Nano9Palette::get_color(c, &mut world);
+            let color = match c {
+                N9Color::Palette(c) => Nano9Palette::get_color(c, &mut world)?,
+                N9Color::Color(rgb) => rgb
+            };
             let mut system_state: SystemState<(ResMut<Assets<Image>>,)> =
                 SystemState::new(&mut world);
             let (mut images,) = system_state.get_mut(&mut world);

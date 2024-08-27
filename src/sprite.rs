@@ -12,7 +12,7 @@ use bevy_mod_scripting::lua::prelude::tealr::mlu::mlua::{
 use bevy_mod_scripting::api::providers::bevy_ecs::LuaEntity;
 use bevy_mod_scripting::prelude::*;
 // use bevy_pixel_buffer::prelude::*;
-use crate::{palette::Nano9Palette, N9Image};
+use crate::{palette::Nano9Palette, N9Image, N9Color};
 use std::sync::OnceLock;
 
 pub(crate) fn despawn_list() -> Option<&'static mut Vec<Entity>> {
@@ -177,14 +177,14 @@ impl UserData for N9Sprite {
     fn add_fields<'lua, F: UserDataFields<'lua, Self>>(fields: &mut F) {
         Transform::add_fields::<'lua, Self, _>(fields);
 
-        fields.add_field_method_set("color", |ctx, this, value| {
+        fields.add_field_method_set("color", |ctx, this, value: Option<N9Color> | {
             let world = ctx.get_world()?;
             let mut world = world.write();
-            let c = if value == Value::Nil {
-                Color::WHITE
-            } else {
-                Nano9Palette::get_color(value, &mut world)
-            };
+
+            let c = value.map(|v| match v {
+                N9Color::Palette(c) => Nano9Palette::get_color(c, &mut world),
+                N9Color::Color(rgb) => Ok(rgb)
+            }).unwrap_or(Ok(Color::WHITE))?;
             let mut system_state: SystemState<Query<&mut Sprite>> = SystemState::new(&mut world);
             let mut query = system_state.get_mut(&mut world);
             let mut item = query.get_mut(this.entity).unwrap();

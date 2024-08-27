@@ -135,7 +135,7 @@ impl APIProvider for Nano9API {
                 ctx.create_function(|ctx, (x, y, c): (f32, f32, Value)| {
                     let world = ctx.get_world()?;
                     let mut world = world.write();
-                    let color = Nano9Palette::get_color(c, &mut world);
+                    let color = Nano9Palette::get_color_or_pen(c, &mut world);
                     let mut system_state: SystemState<(Res<Nano9Screen>, ResMut<Assets<Image>>)> =
                         SystemState::new(&mut world);
                     let (screen, mut images) = system_state.get_mut(&mut world);
@@ -225,7 +225,7 @@ impl APIProvider for Nano9API {
                 ctx.create_function(|ctx, value| {
                     let world = ctx.get_world()?;
                     let mut world = world.write();
-                    let c = Nano9Palette::get_color(value, &mut world);
+                    let c = Nano9Palette::get_color_or_pen(value, &mut world);
                     let mut system_state: SystemState<(Res<Nano9Screen>, ResMut<Assets<Image>>)> =
                         SystemState::new(&mut world);
                     let (screen, mut images) = system_state.get_mut(&mut world);

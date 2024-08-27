@@ -13,7 +13,8 @@ function _init()
 end
 
 x = 0
+c = {r = 0, g = 0, b = 1}
 function _update()
-    background.image:set_pixel(x, x)
+    background.image:set_pixel(x, x, c)
     x = x + 1
 end
