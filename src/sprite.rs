@@ -1,7 +1,5 @@
 use bevy::{
-    ecs::{system::{SystemState},
-          world::Command,
-    },
+    ecs::{system::SystemState, world::Command},
     prelude::*,
     sprite::Anchor,
     transform::commands::PushChildInPlace,
@@ -14,7 +12,7 @@ use bevy_mod_scripting::lua::prelude::tealr::mlu::mlua::{
 use bevy_mod_scripting::api::providers::bevy_ecs::LuaEntity;
 use bevy_mod_scripting::prelude::*;
 // use bevy_pixel_buffer::prelude::*;
-use crate::{palette::Nano9Palette, N9Image, N9Color};
+use crate::{palette::Nano9Palette, N9Color, N9Image};
 use std::sync::OnceLock;
 
 pub(crate) fn despawn_list() -> Option<&'static mut Vec<Entity>> {
@@ -28,7 +26,9 @@ pub(crate) fn despawn_list() -> Option<&'static mut Vec<Entity>> {
 fn despawn_list_system(mut commands: Commands) {
     if let Some(list) = despawn_list() {
         for id in list.drain(..) {
-            if let Some(mut e) = commands.get_entity(id) { e.despawn() }
+            if let Some(mut e) = commands.get_entity(id) {
+                e.despawn()
+            }
         }
     }
 }
@@ -179,14 +179,16 @@ impl UserData for N9Sprite {
     fn add_fields<'lua, F: UserDataFields<'lua, Self>>(fields: &mut F) {
         Transform::add_fields::<'lua, Self, _>(fields);
 
-        fields.add_field_method_set("color", |ctx, this, value: Option<N9Color> | {
+        fields.add_field_method_set("color", |ctx, this, value: Option<N9Color>| {
             let world = ctx.get_world()?;
             let mut world = world.write();
 
-            let c = value.map(|v| match v {
-                N9Color::Palette(c) => Nano9Palette::get_color(c, &mut world),
-                N9Color::Color(rgb) => Ok(rgb.into())
-            }).unwrap_or(Ok(Color::WHITE))?;
+            let c = value
+                .map(|v| match v {
+                    N9Color::Palette(c) => Nano9Palette::get_color(c, &mut world),
+                    N9Color::Color(rgb) => Ok(rgb.into()),
+                })
+                .unwrap_or(Ok(Color::WHITE))?;
             let mut system_state: SystemState<Query<&mut Sprite>> = SystemState::new(&mut world);
             let mut query = system_state.get_mut(&mut world);
             let mut item = query.get_mut(this.entity).unwrap();

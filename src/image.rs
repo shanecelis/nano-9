@@ -1,11 +1,8 @@
 use bevy::{ecs::system::SystemState, prelude::*};
 
-use crate::{palette::Nano9Palette, pixel::PixelAccess, DropPolicy, N9Sprite, ValueExt, N9Color};
-use bevy_mod_scripting::lua::prelude::tealr::mlu::mlua::{
-    UserData, UserDataMethods,
-};
+use crate::{palette::Nano9Palette, pixel::PixelAccess, DropPolicy, N9Color, N9Sprite, ValueExt};
+use bevy_mod_scripting::lua::prelude::tealr::mlu::mlua::{UserData, UserDataMethods};
 use bevy_mod_scripting::prelude::*;
-
 
 #[derive(Clone)]
 pub struct N9ImageLoader;
@@ -132,7 +129,7 @@ impl UserData for N9Image {
             let mut world = world.write();
             let color = match c {
                 N9Color::Palette(c) => Nano9Palette::get_color(c, &mut world)?,
-                N9Color::Color(rgb) => rgb.into()
+                N9Color::Color(rgb) => rgb.into(),
             };
             let mut system_state: SystemState<(ResMut<Assets<Image>>,)> =
                 SystemState::new(&mut world);

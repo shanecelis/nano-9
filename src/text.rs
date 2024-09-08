@@ -1,6 +1,7 @@
 use bevy::{
-    ecs::{system::{SystemState},
-          world::{Command, CommandQueue},
+    ecs::{
+        system::SystemState,
+        world::{Command, CommandQueue},
     },
     prelude::*,
 };
@@ -103,7 +104,9 @@ impl UserData for N9TextLoader {
                     .id();
             } else if let Some(entities) = reserved_entities() {
                 if let Some(id) = entities.pop() {
-                    if let Some(c) = deferred_commands() { c.push(Print(id, str, TextStyle::default())) }
+                    if let Some(c) = deferred_commands() {
+                        c.push(Print(id, str, TextStyle::default()))
+                    }
                 } else {
                     warn!("Ran out of reserved entities.");
                 }

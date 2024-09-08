@@ -42,7 +42,9 @@ impl Nano9Palette {
         images
             .get(&palette.0)
             .ok_or_else(|| LuaError::RuntimeError(format!("no such palette {:?}", &palette.0)))
-            .and_then(|pal|
-                      pal.get_pixel(index).map_err(|_| LuaError::RuntimeError(format!("no such pixel index {:?}", index))))
+            .and_then(|pal| {
+                pal.get_pixel(index)
+                    .map_err(|_| LuaError::RuntimeError(format!("no such pixel index {:?}", index)))
+            })
     }
 }

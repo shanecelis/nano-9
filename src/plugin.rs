@@ -285,7 +285,9 @@ impl Plugin for Nano9Plugin {
         app.insert_resource(bevy::winit::WinitSettings {
             // focused_mode: bevy::winit::UpdateMode::Continuous,
             focused_mode: bevy::winit::UpdateMode::reactive(Duration::from_millis(16)),
-            unfocused_mode: bevy::winit::UpdateMode::reactive_low_power(Duration::from_millis(16 * 4)),
+            unfocused_mode: bevy::winit::UpdateMode::reactive_low_power(Duration::from_millis(
+                16 * 4,
+            )),
         })
         .add_plugins(
             DefaultPlugins
@@ -312,7 +314,10 @@ impl Plugin for Nano9Plugin {
         .init_resource::<DrawState>()
         .add_plugins(crate::plugin)
         // .add_systems(OnExit(screens::Screen::Loading), setup_image)
-        .add_systems(Startup, (setup_image, set_background, spawn_camera, set_camera).chain())
+        .add_systems(
+            Startup,
+            (setup_image, set_background, spawn_camera, set_camera).chain(),
+        )
         // .add_systems(OnEnter(screens::Screen::Playing), send_init)
         // .add_systems(PreUpdate, send_init.run_if(on_asset_modified::<LuaFile>()))
         .add_systems(

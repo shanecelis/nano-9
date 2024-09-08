@@ -1,4 +1,4 @@
-use bevy::{core::FrameCount, prelude::*, window::RequestRedraw, color::palettes::css};
+use bevy::{color::palettes::css, core::FrameCount, prelude::*, window::RequestRedraw};
 use bevy_mod_scripting::{core::event::ScriptLoaded, prelude::*};
 
 pub(crate) fn plugin(app: &mut App) {

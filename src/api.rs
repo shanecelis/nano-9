@@ -4,13 +4,11 @@ use std::sync::Mutex;
 use bevy::{ecs::system::SystemState, prelude::*, reflect::Reflect};
 use bevy_mod_scripting::prelude::*;
 
-use bevy_mod_scripting::lua::prelude::tealr::mlu::mlua::{
-    self, UserData,
-};
+use bevy_mod_scripting::lua::prelude::tealr::mlu::mlua::{self, UserData};
 // use bevy_pixel_buffer::prelude::*;
 use crate::{
-    pixel::PixelAccess, DropPolicy, N9AudioLoader, N9Camera, N9Image,
-    N9ImageLoader, N9Sprite, N9TextLoader, Nano9Palette, Nano9Screen,
+    pixel::PixelAccess, DropPolicy, N9AudioLoader, N9Camera, N9Image, N9ImageLoader, N9Sprite,
+    N9TextLoader, Nano9Palette, Nano9Screen,
 };
 
 #[derive(Clone)]

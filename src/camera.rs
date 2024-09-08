@@ -1,9 +1,7 @@
 use bevy::prelude::*;
 use bevy_mod_scripting::prelude::*;
 
-use bevy_mod_scripting::lua::prelude::tealr::mlu::mlua::{
-    UserData, UserDataFields,
-};
+use bevy_mod_scripting::lua::prelude::tealr::mlu::mlua::{UserData, UserDataFields};
 
 use crate::{EntityRep, UserDataComponent};
 

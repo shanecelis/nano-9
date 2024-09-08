@@ -1,11 +1,11 @@
 //! get_pixel, set_pixel operations for Image
 //!
 use bevy::{
+    color::{ColorToPacked, LinearRgba, Srgba},
     render::{
-    render_resource::{Extent3d, TextureFormat},
-    texture::{Image, TextureFormatPixelInfo},
-},
-    color::{LinearRgba, Srgba, ColorToPacked},
+        render_resource::{Extent3d, TextureFormat},
+        texture::{Image, TextureFormatPixelInfo},
+    },
 };
 
 // use bevy::color::{Color, ColorToComponents, ColorToPacked, LinearRgba, Srgba};
