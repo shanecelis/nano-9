@@ -124,7 +124,7 @@ pub fn set_camera(
 fn spawn_camera(
     mut commands: Commands,
     settings: Res<N9Settings>,
-    mut events: PriorityEventWriter<LuaEvent<N9Arg>>,
+    events: PriorityEventWriter<LuaEvent<N9Arg>>,
     screen: Res<Nano9Screen>,
 ) {
     let mut camera_bundle = Camera2dBundle::default();

@@ -28,8 +28,6 @@ impl<T: Asset + Clone> FromLua<'_> for MyHandle<T> {
 
 impl<T: Asset + Clone> UserData for MyHandle<T> {}
 
-// type N9Arg = ();
-
 #[derive(Clone, Default)]
 pub enum N9Arg {
     #[default]

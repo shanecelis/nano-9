@@ -88,7 +88,7 @@ impl UserData for N9TextLoader {
             let mut world = world.write();
             let mut system_state: SystemState<(Res<AssetServer>,)> = SystemState::new(&mut world);
             let (server,) = system_state.get(&world);
-            let font: Handle<Font> = server.load(&path);
+            let font: Handle<Font> = server.load(path);
             Ok(N9TextStyle(TextStyle { font, ..default() }))
         });
 

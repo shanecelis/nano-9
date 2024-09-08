@@ -33,7 +33,7 @@ impl UserData for N9ImageLoader {
             let mut world = world.write();
             let mut system_state: SystemState<(Res<AssetServer>,)> = SystemState::new(&mut world);
             let (server,) = system_state.get(&world);
-            let handle: Handle<Image> = server.load(&path);
+            let handle: Handle<Image> = server.load(path);
             Ok(N9Image {
                 handle,
                 layout: None,
