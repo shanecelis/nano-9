@@ -4,7 +4,7 @@ use bevy_mod_scripting::prelude::*;
 // use bevy_pixel_buffer::prelude::*;
 use crate::{assets::ImageHandles, pixel::PixelAccess, DrawState};
 
-pub fn plugin(app: &mut App) {
+pub(crate) fn plugin(app: &mut App) {
     app.add_systems(Startup, setup);
 }
 

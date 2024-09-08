@@ -117,7 +117,6 @@ impl UserData for N9TextLoader {
 }
 
 #[derive(Clone, Default)]
-
 pub struct N9TextStyle(TextStyle);
 impl FromLua<'_> for N9TextStyle {
     fn from_lua(value: Value, _: &Lua) -> mlua::Result<Self> {

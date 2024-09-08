@@ -1,3 +1,4 @@
+#![allow(clippy::type_complexity)]
 use bevy::prelude::*;
 pub mod api;
 mod assets;
@@ -13,6 +14,7 @@ mod plugin;
 pub mod screens;
 mod sprite;
 mod text;
+mod level;
 
 pub use audio::*;
 pub use camera::*;

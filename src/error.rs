@@ -68,7 +68,7 @@ fn spawn_error_message_layout(mut commands: Commands) {
         },))
         .with_children(|parent| {
             parent.spawn((NodeBundle {
-                    // visibility: Visibility::Hidden,
+                    visibility: Visibility::Hidden,
                     style: Style {
                         flex_direction: FlexDirection::Column,
                         // flex_grow: 1.,

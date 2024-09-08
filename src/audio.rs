@@ -121,7 +121,7 @@ impl UserData for N9Sound {
             let world = ctx.get_world()?;
             let mut world = world.write();
             let mut system_state: SystemState<Query<&AudioSink>> = SystemState::new(&mut world);
-            let query = system_state.get(&mut world);
+            let query = system_state.get(&world);
             let sink = query.get(this.0).unwrap();
             Ok(sink.speed())
         });
@@ -140,7 +140,7 @@ impl UserData for N9Sound {
             let world = ctx.get_world()?;
             let mut world = world.write();
             let mut system_state: SystemState<Query<&AudioSink>> = SystemState::new(&mut world);
-            let query = system_state.get(&mut world);
+            let query = system_state.get(&world);
             Ok(query
                 .get(this.0)
                 .map(|sink| !sink.is_paused() && !sink.empty())
@@ -151,7 +151,7 @@ impl UserData for N9Sound {
             let world = ctx.get_world()?;
             let mut world = world.write();
             let mut system_state: SystemState<Query<&AudioSink>> = SystemState::new(&mut world);
-            let query = system_state.get(&mut world);
+            let query = system_state.get(&world);
             let sink = query.get(this.0).unwrap();
             Ok(sink.is_paused())
         });
