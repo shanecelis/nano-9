@@ -67,14 +67,14 @@ impl UserData for N9Image {
     fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_method_mut(
             "set_grid",
-            |ctx, this, (width, height, columns, rows): (f32, f32, usize, usize)| {
+            |ctx, this, (width, height, columns, rows): (u32, u32, u32, u32)| {
                 let world = ctx.get_world()?;
                 let mut world = world.write();
                 let mut system_state: SystemState<ResMut<Assets<TextureAtlasLayout>>> =
                     SystemState::new(&mut world);
                 let mut layouts = system_state.get_mut(&mut world);
                 this.layout = Some(layouts.add(TextureAtlasLayout::from_grid(
-                    Vec2::new(width, height),
+                    UVec2::new(width, height),
                     columns,
                     rows,
                     None,
@@ -132,7 +132,7 @@ impl UserData for N9Image {
             let mut world = world.write();
             let color = match c {
                 N9Color::Palette(c) => Nano9Palette::get_color(c, &mut world)?,
-                N9Color::Color(rgb) => rgb
+                N9Color::Color(rgb) => rgb.into()
             };
             let mut system_state: SystemState<(ResMut<Assets<Image>>,)> =
                 SystemState::new(&mut world);

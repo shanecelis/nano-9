@@ -1,8 +1,11 @@
 //! get_pixel, set_pixel operations for Image
 //!
-use bevy::render::{
+use bevy::{
+    render::{
     render_resource::{Extent3d, TextureFormat},
     texture::{Image, TextureFormatPixelInfo},
+},
+    color::{LinearRgba, Srgba, ColorToPacked},
 };
 
 // use bevy::color::{Color, ColorToComponents, ColorToPacked, LinearRgba, Srgba};
@@ -127,18 +130,17 @@ impl PixelAccess for Image {
             //     Ok(LinearRgba::new(a[0] as f32, a[1] as f32, a[2] as f32, a[3] as f32).into())
             // }
             Rgba8Unorm => {
-                let mut a = [0u8; 4];
-                a.copy_from_slice(&self.data[start..start + pixel_size]);
+                let a = &self.data[start..start + pixel_size];
                 // Ok(LinearRgba::from_u8_array(a).into())
-                Ok(Color::rgba_linear_from_array(
-                    a.map(|x| x as f32 / u8::MAX as f32),
-                ))
+                Ok(Color::rgba_u8(a[0], a[1], a[2], a[3]))
             }
             Rgba8UnormSrgb => {
-                let mut a = [0u8; 4];
-                a.copy_from_slice(&self.data[start..start + pixel_size]);
-                Ok(Color::rgba_from_array(a.map(|x| x as f32 / u8::MAX as f32)))
+                let a = &self.data[start..start + pixel_size];
+                // let mut a = [0u8; 4];
+                // a.copy_from_slice(&self.data[start..start + pixel_size]);
+                // Ok(Color::rgba_from_array(a.map(|x| x as f32 / u8::MAX as f32)))
                 // Ok(Srgba::from_u8_array(a).into())
+                Ok(Color::srgba_u8(a[0], a[1], a[2], a[3]))
             }
             f => {
                 if f.is_compressed() {
@@ -191,16 +193,16 @@ impl PixelAccess for Image {
             //     Ok(())
             // }
             Rgba8Unorm => {
-                // let c: LinearRgba = color.into();
-                // let a = c.to_u8_array();
-                let a: [u8; 4] = u32::to_le_bytes(color.as_linear_rgba_u32());
+                let c: LinearRgba = color.into();
+                let a = c.to_u8_array();
+                // let a: [u8; 4] = u32::to_le_bytes(color.as_linear_rgba_u32());
                 self.data[start..start + pixel_size].copy_from_slice(&a);
                 Ok(())
             }
             Rgba8UnormSrgb => {
-                // let c: Srgba = color.into();
-                // let a = c.to_u8_array();
-                let a = color.as_rgba_u8();
+                let c: Srgba = color.into();
+                let a = c.to_u8_array();
+                // let a = color.as_rgba_u8();
                 self.data[start..start + pixel_size].copy_from_slice(&a);
                 Ok(())
             }

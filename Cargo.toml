@@ -4,16 +4,16 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy = "0.13"
+bevy = "0.14"
 # bevy = { version = "0.13", default-features = false, features = [ "bevy_winit", "bevy_asset", "bevy_render" ] }
-bevy_asset_loader = "0.20"
+bevy_asset_loader = "0.21"
 bevy_mod_scripting = { version = "0.6.0", features = ["lua54", "lua_script_api", "unsafe_lua_modules"] }
 bytemuck = "1.16.3"
 thiserror = "1.0.63"
 # bevy_pixel_buffer = "0.7.0"
 
-# [dev-dependencies]
-# bevy = "0.13"
+[dev-dependencies]
+bevy = "0.14"
 
 [[bin]]
 name = "nano-9"
@@ -22,5 +22,5 @@ bench = false
 
 [patch.crates-io]
 # bevy_mod_scripting = { path = "../bevy_mod_scripting" }
-bevy_mod_scripting = { git = "https://github.com/shanecelis/bevy_mod_scripting.git", branch = "propogate_script_error" }
+bevy_mod_scripting = { git = "https://github.com/makspll/bevy_mod_scripting.git", branch = "main" }
 # bevy_pixel_buffer = { path = "../bevy_pixel_buffer" }

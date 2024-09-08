@@ -284,12 +284,8 @@ impl Plugin for Nano9Plugin {
         let resolution = settings.canvas_size.as_vec2() * settings.pixel_scale;
         app.insert_resource(bevy::winit::WinitSettings {
             // focused_mode: bevy::winit::UpdateMode::Continuous,
-            focused_mode: bevy::winit::UpdateMode::ReactiveLowPower {
-                wait: Duration::from_millis(16),
-            },
-            unfocused_mode: bevy::winit::UpdateMode::ReactiveLowPower {
-                wait: Duration::from_millis(16 * 4),
-            },
+            focused_mode: bevy::winit::UpdateMode::reactive(Duration::from_millis(16)),
+            unfocused_mode: bevy::winit::UpdateMode::reactive_low_power(Duration::from_millis(16 * 4)),
         })
         .add_plugins(
             DefaultPlugins

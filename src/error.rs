@@ -1,4 +1,4 @@
-use bevy::{core::FrameCount, prelude::*, window::RequestRedraw};
+use bevy::{core::FrameCount, prelude::*, window::RequestRedraw, color::palettes::css};
 use bevy_mod_scripting::{core::event::ScriptLoaded, prelude::*};
 
 pub(crate) fn plugin(app: &mut App) {
@@ -80,7 +80,7 @@ fn spawn_error_message_layout(mut commands: Commands) {
                         },
                         ..Default::default()
                     },
-                    background_color: BackgroundColor(Color::RED),
+                    background_color: BackgroundColor(css::RED.into()),
                     ..Default::default()
                 }, ErrorMessages))
                 // .with_children(|parent| {

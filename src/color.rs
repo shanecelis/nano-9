@@ -10,7 +10,7 @@ use bevy_mod_scripting::prelude::*;
 #[derive(Debug, Clone)]
 pub enum N9Color {
     Palette(usize),
-    Color(Color)
+    Color(LinearRgba)
 }
 
 impl FromLua<'_> for N9Color {
@@ -28,12 +28,12 @@ impl FromLua<'_> for N9Color {
             Value::Table(t) => {
                 let l = t.len().unwrap_or(0);
                 if t.contains_key("r")? && t.contains_key("g")? && t.contains_key("b")? {
-                    Ok(N9Color::Color(Color::rgba(t.get("r").and_then(|x: Value| x.to_f32().ok_or(bad_arg("r")))?,
+                    Ok(N9Color::Color(LinearRgba::new(t.get("r").and_then(|x: Value| x.to_f32().ok_or(bad_arg("r")))?,
                                                   t.get("g").and_then(|x: Value| x.to_f32().ok_or(bad_arg("g")))?,
                                                   t.get("b").and_then(|x: Value| x.to_f32().ok_or(bad_arg("b")))?,
                                                   t.get("a").map(|x: Value| x.as_f32().unwrap_or(1.0))?)))
                 } else if l >= 3 {
-                    Ok(N9Color::Color(Color::rgba(t.get(1).and_then(|x: Value| x.to_f32().ok_or(bad_arg("r")))?,
+                    Ok(N9Color::Color(LinearRgba::new(t.get(1).and_then(|x: Value| x.to_f32().ok_or(bad_arg("r")))?,
                                                   t.get(2).and_then(|x: Value| x.to_f32().ok_or(bad_arg("g")))?,
                                                   t.get(3).and_then(|x: Value| x.to_f32().ok_or(bad_arg("b")))?,
                                                   t.get(4).map(|x: Value| x.as_f32().unwrap_or(1.0))?)))
@@ -71,7 +71,7 @@ impl UserData for N9Color {
         fields.add_field_method_get("r", |ctx, this| {
             match this {
                 Self::Palette(_) => Ok(Value::Nil),
-                Self::Color(c) => Ok(Value::Number(c.r() as f64))
+                Self::Color(c) => Ok(Value::Number(c.red as f64))
             }
         });
 
@@ -79,7 +79,7 @@ impl UserData for N9Color {
             match this {
                 Self::Palette(_) => Err(LuaError::RuntimeError("Cannot set red channel of palette color".into())),
                 Self::Color(c) => {
-                    c.set_r(value);
+                    c.red = value;
                     Ok(())
                 }
             }

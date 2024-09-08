@@ -1,5 +1,7 @@
 use bevy::{
-    ecs::system::{Command, CommandQueue, SystemState},
+    ecs::{system::{SystemState},
+          world::{Command, CommandQueue},
+    },
     prelude::*,
 };
 

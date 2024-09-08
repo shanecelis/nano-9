@@ -1,5 +1,7 @@
 use bevy::{
-    ecs::system::{Command, SystemState},
+    ecs::{system::{SystemState},
+          world::Command,
+    },
     prelude::*,
     sprite::Anchor,
     transform::commands::PushChildInPlace,
@@ -183,7 +185,7 @@ impl UserData for N9Sprite {
 
             let c = value.map(|v| match v {
                 N9Color::Palette(c) => Nano9Palette::get_color(c, &mut world),
-                N9Color::Color(rgb) => Ok(rgb)
+                N9Color::Color(rgb) => Ok(rgb.into())
             }).unwrap_or(Ok(Color::WHITE))?;
             let mut system_state: SystemState<Query<&mut Sprite>> = SystemState::new(&mut world);
             let mut query = system_state.get_mut(&mut world);
