@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use bevy_mod_scripting::prelude::*;
 use nano_9::*;
 use std::env;
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
 fn main() -> std::io::Result<()> {
     let mut args = env::args();
@@ -12,6 +13,7 @@ fn main() -> std::io::Result<()> {
         .unwrap_or("scripts/main.lua".into());
     App::new()
         .add_plugins(Nano9Plugin::default())
+        .add_plugins(WorldInspectorPlugin::new())
         .add_systems(
             Startup,
             move |asset_server: Res<AssetServer>, mut commands: Commands| {

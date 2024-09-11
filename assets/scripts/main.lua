@@ -37,6 +37,7 @@ animate = {
 
 -- _init() is called once per load.
 function _init()
+    lvl = level:load("levels/a.ldtk", { ["Slime"] = "assets/scripts/entity/slime" })
     --text.default:print("Hello world")
     music = audio:load("music/Comfortable Mystery.ogg")
     m = music:play_loop()

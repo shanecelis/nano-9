@@ -8,7 +8,7 @@ use bevy_mod_scripting::lua::prelude::tealr::mlu::mlua::{self, UserData};
 // use bevy_pixel_buffer::prelude::*;
 use crate::{
     pixel::PixelAccess, DropPolicy, N9AudioLoader, N9Camera, N9Image, N9ImageLoader, N9Sprite,
-    N9TextLoader, Nano9Palette, Nano9Screen,
+    N9TextLoader, Nano9Palette, Nano9Screen, N9LevelLoader,
 };
 
 #[derive(Clone)]
@@ -83,6 +83,9 @@ impl APIProvider for Nano9API {
         // check the Rlua documentation for more details
 
         let ctx = ctx.get_mut().unwrap();
+        ctx.globals()
+            .set("level", N9LevelLoader)
+            .map_err(ScriptError::new_other)?;
 
         ctx.globals()
             .set("audio", N9AudioLoader)

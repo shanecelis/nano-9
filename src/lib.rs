@@ -25,6 +25,7 @@ pub use palette::*;
 pub use plugin::*;
 pub use sprite::*;
 pub use text::*;
+pub use level::*;
 
 #[derive(thiserror::Error, Debug)]
 pub enum N9Error {
@@ -45,6 +46,7 @@ pub(crate) fn plugin(app: &mut App) {
         error::plugin,
         text::plugin,
         // audio::plugin,
+        level::plugin,
     ));
 
     // Enable dev tools for dev builds.
