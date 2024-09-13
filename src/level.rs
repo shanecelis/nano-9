@@ -8,7 +8,7 @@ use bevy::{
 use bevy_ecs_ldtk::prelude::*;
 use bevy_mod_scripting::lua::prelude::tealr::mlu::mlua::{UserData, UserDataMethods, UserDataFields, Function, Table};
 use bevy_mod_scripting::prelude::*;
-use crate::{EntityRep, UserDataComponent};
+use crate::{DropPolicy, EntityRep, UserDataComponent, api::{N9Arg, N9Args}};
 use std::collections::HashMap;
 
 pub(crate) fn plugin(app: &mut App) {
@@ -70,7 +70,7 @@ fn process_entities(
     new_entity_instances: Query<(Entity, &EntityInstance), Added<EntityInstance>>,
     // processor: Query<&N9LevelProcessor>,
     assets: Res<AssetServer>,
-    mut events: PriorityEventWriter<LuaEvent<N9Arg>>,
+    mut events: PriorityEventWriter<LuaEvent<N9Args>>,
 )
 {
     // let Ok(processor) = processor.get_single() else { return; };
@@ -80,10 +80,11 @@ fn process_entities(
         events.send(
             LuaEvent {
                 hook_name: "_ldtk_entity".to_owned(),
-                args: N9Arg::SetSprite {
-                    name: "background".into(),
-                    sprite: id,
-                    drop: DropPolicy::Nothing,
+                args: {
+                    let mut args = N9Args::new();
+                    args.push(N9Arg::String(entity_instance.identifier.clone()));
+                    args.push(N9Arg::Entity(entity));
+                    args
                 },
                 recipients: Recipients::All,
             },

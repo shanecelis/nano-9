@@ -43,6 +43,17 @@ pub enum DropPolicy {
     Despawn,
 }
 
+impl UserData for DropPolicy { }
+
+impl FromLua<'_> for DropPolicy {
+    fn from_lua(value: Value, _: &Lua) -> mlua::Result<Self> {
+        match value {
+            Value::UserData(ud) => Ok(ud.borrow::<Self>()?.clone()),
+            _ => unreachable!(),
+        }
+    }
+}
+
 pub struct N9Sprite {
     pub entity: Entity,
     pub drop: DropPolicy,

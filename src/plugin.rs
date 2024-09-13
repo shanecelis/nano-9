@@ -14,8 +14,10 @@ use bevy::{
 
 use bevy_asset_loader::prelude::*;
 use bevy_mod_scripting::{core::event::ScriptLoaded, prelude::*};
+
+use bevy_mod_scripting::lua::prelude::tealr::mlu::mlua::{Variadic};
 // use bevy_pixel_buffer::prelude::*;
-use crate::{api::N9Arg, assets::ImageHandles, screens, DropPolicy};
+use crate::{api::{N9Arg, N9Args}, assets::ImageHandles, screens, DropPolicy, N9Camera};
 
 #[derive(AssetCollection, Resource)]
 struct ImageAssets {
@@ -84,16 +86,22 @@ pub fn setup_image(
 
 pub fn set_background(
     screen: Query<Entity, With<Nano9Sprite>>,
-    mut events: PriorityEventWriter<LuaEvent<N9Arg>>,
+    mut events: PriorityEventWriter<LuaEvent<N9Args>>,
 ) {
     if let Ok(id) = screen.get_single() {
         events.send(
             LuaEvent {
-                hook_name: "_set_global".to_owned(),
-                args: N9Arg::SetSprite {
-                    name: "background".into(),
-                    sprite: id,
-                    drop: DropPolicy::Nothing,
+                hook_name: "_set_sprite".to_owned(),
+                args: {
+                    let mut args = Variadic::new();
+                    args.push(N9Arg::String("background".into()));
+                    args.push(N9Arg::Entity(id));
+                    args.push(N9Arg::DropPolicy(DropPolicy::Nothing));
+                    // N9Arg::SetSprite {
+                    // name: "background".into(),
+                    // sprite: id,
+                    // drop: DropPolicy::Nothing,
+                    args
                 },
                 recipients: Recipients::All,
             },
@@ -104,15 +112,18 @@ pub fn set_background(
 
 pub fn set_camera(
     camera: Query<Entity, With<Camera>>,
-    mut events: PriorityEventWriter<LuaEvent<N9Arg>>,
+    mut events: PriorityEventWriter<LuaEvent<N9Args>>,
 ) {
     if let Ok(id) = camera.get_single() {
         events.send(
             LuaEvent {
                 hook_name: "_set_global".to_owned(),
-                args: N9Arg::SetCamera {
-                    name: "camera".into(),
-                    camera: id,
+                args: {
+                    let mut args = Variadic::new();
+                    args.push(N9Arg::String("camera".into()));
+                    // args.push(N9Arg::Entity(id));
+                    args.push(N9Arg::Camera(N9Camera(id)));
+                    args
                 },
                 recipients: Recipients::All,
             },
@@ -124,7 +135,6 @@ pub fn set_camera(
 fn spawn_camera(
     mut commands: Commands,
     settings: Res<N9Settings>,
-    events: PriorityEventWriter<LuaEvent<N9Arg>>,
     screen: Res<Nano9Screen>,
 ) {
     let mut camera_bundle = Camera2dBundle::default();
@@ -220,11 +230,11 @@ pub fn sync_window_size(
 }
 
 /// Sends events allowing scripts to drive update logic
-pub fn send_update(mut events: PriorityEventWriter<LuaEvent<N9Arg>>) {
+pub fn send_update(mut events: PriorityEventWriter<LuaEvent<N9Args>>) {
     events.send(
         LuaEvent {
             hook_name: "_update".to_owned(),
-            args: N9Arg::default(),
+            args: N9Args::new(),
             recipients: Recipients::All,
         },
         1,
@@ -234,14 +244,14 @@ pub fn send_update(mut events: PriorityEventWriter<LuaEvent<N9Arg>>) {
 /// Sends initialization event
 pub fn send_init(
     mut loaded: EventReader<ScriptLoaded>,
-    mut events: PriorityEventWriter<LuaEvent<N9Arg>>) {
+    mut events: PriorityEventWriter<LuaEvent<N9Args>>) {
 
     for e in loaded.read() {
         eprintln!("init {}", e.sid);
         events.send(
             LuaEvent {
                 hook_name: "_init".to_owned(),
-                args: N9Arg::default(),
+                args: N9Args::new(),
                 recipients: Recipients::ScriptID(e.sid),
             },
             0,
@@ -250,11 +260,11 @@ pub fn send_init(
 }
 
 /// Sends draw event
-pub fn send_draw(mut events: PriorityEventWriter<LuaEvent<N9Arg>>) {
+pub fn send_draw(mut events: PriorityEventWriter<LuaEvent<N9Args>>) {
     events.send(
         LuaEvent {
             hook_name: "_draw".to_owned(),
-            args: N9Arg::default(),
+            args: N9Args::new(),
             recipients: Recipients::All,
         },
         0,

@@ -3,8 +3,9 @@ use std::sync::Mutex;
 
 use bevy::{ecs::system::SystemState, prelude::*, reflect::Reflect};
 use bevy_mod_scripting::prelude::*;
+use bevy_mod_scripting::api::providers::bevy_ecs::LuaEntity;
 
-use bevy_mod_scripting::lua::prelude::tealr::mlu::mlua::{self, UserData};
+use bevy_mod_scripting::lua::prelude::tealr::mlu::mlua::{self, UserData, Variadic};
 // use bevy_pixel_buffer::prelude::*;
 use crate::{
     pixel::PixelAccess, DropPolicy, N9AudioLoader, N9Camera, N9Image, N9ImageLoader, N9Sprite,
@@ -26,30 +27,52 @@ impl<T: Asset + Clone> FromLua<'_> for MyHandle<T> {
 
 impl<T: Asset + Clone> UserData for MyHandle<T> {}
 
-#[derive(Clone, Default)]
-pub enum N9Arg {
-    #[default]
-    None,
-    ImagePair {
-        name: String,
-        image: N9Image,
-    },
-    SetCamera {
-        name: String,
-        camera: Entity,
-    },
-    SetSprite {
-        name: String,
-        sprite: Entity,
-        drop: DropPolicy,
-    },
-    EntityAdded {
-        instance: bevy_ecs_ldtk::EntityInstance,
-        entity: Entity
+pub type N9Args = Variadic<N9Arg>;
+
+impl<'lua> IntoLua<'lua> for N9Arg {
+    fn into_lua(self, lua: &'lua Lua) -> mlua::Result<Value<'lua>> {
+        use N9Arg::*;
+        match self {
+            String(x) => x.into_lua(lua),
+            Image(x) => x.into_lua(lua),
+            Camera(x) => x.into_lua(lua),
+            Entity(x) => LuaEntity::new(x).into_lua(lua),
+            DropPolicy(x) => x.into_lua(lua),
+        }
     }
 }
 
-impl UserData for N9Arg {}
+#[derive(Clone)]
+pub enum N9Arg {
+    String(String),
+    Image(N9Image),
+    Camera(N9Camera),
+    // Sprite(N9Sprite),
+    Entity(Entity),
+    DropPolicy(DropPolicy),
+    // DropPolicy(DropPolicy),
+    // #[default]
+    // None,
+    // ImagePair {
+    //     name: String,
+    //     image: N9Image,
+    // },
+    // SetCamera {
+    //     name: String,
+    //     camera: Entity,
+    // },
+    // SetSprite {
+    //     name: String,
+    //     sprite: Entity,
+    //     drop: DropPolicy,
+    // },
+    // EntityAdded {
+    //     instance: bevy_ecs_ldtk::EntityInstance,
+    //     entity: Entity
+    // }
+}
+
+// impl UserData for N9Arg {}
 
 impl FromLua<'_> for N9Arg {
     fn from_lua(value: Value, _: &Lua) -> mlua::Result<Self> {
@@ -60,17 +83,18 @@ impl FromLua<'_> for N9Arg {
     }
 }
 
+
 pub fn plugin(app: &mut App) {
     app.add_plugins(ScriptingPlugin)
         .add_systems(
             FixedUpdate,
-            script_event_handler::<LuaScriptHost<N9Arg>, 0, 1>,
+            script_event_handler::<LuaScriptHost<N9Args>, 0, 1>,
         )
         // .register_foreign_lua_type::<Handle<Image>>()
-        .add_script_host::<LuaScriptHost<N9Arg>>(PostUpdate)
-        .add_api_provider::<LuaScriptHost<N9Arg>>(Box::new(LuaCoreBevyAPIProvider))
-        .add_api_provider::<LuaScriptHost<N9Arg>>(Box::new(Nano9API))
-        .add_script_handler::<LuaScriptHost<N9Arg>, 0, 0>(PostUpdate);
+        .add_script_host::<LuaScriptHost<N9Args>>(PostUpdate)
+        .add_api_provider::<LuaScriptHost<N9Args>>(Box::new(LuaCoreBevyAPIProvider))
+        .add_api_provider::<LuaScriptHost<N9Args>>(Box::new(Nano9API))
+        .add_script_handler::<LuaScriptHost<N9Args>, 0, 0>(PostUpdate);
 }
 
 #[derive(Default)]
@@ -106,27 +130,22 @@ impl APIProvider for Nano9API {
         ctx.globals()
             .set(
                 "_set_global",
-                ctx.create_function(|ctx, arg: N9Arg| {
-                    match arg {
-                        N9Arg::ImagePair { name, image } => {
-                            warn!("set global {name}");
-                            ctx.globals().set(name, image)
-                        }
-                        N9Arg::SetSprite { name, sprite, drop } => ctx.globals().set(
-                            name,
-                            N9Sprite {
-                                entity: sprite,
-                                drop,
-                            },
-                        ),
-                        N9Arg::SetCamera { name, camera } => {
-                            ctx.globals().set(name, N9Camera(camera))
-                        }
-                        _ => {
-                            // XXX: This should be an error.
-                            Ok(())
-                        }
-                    }
+                ctx.create_function(|ctx, (name, value): (String, Value)| {
+                    ctx.globals().set(name, value)
+                })
+                .map_err(ScriptError::new_other)?,
+            )
+            .map_err(ScriptError::new_other)?;
+
+        ctx.globals()
+            .set(
+                "_set_sprite",
+                ctx.create_function(|ctx, (name, id, drop): (String, LuaEntity, DropPolicy)| {
+                    let sprite = N9Sprite {
+                        entity: id.inner()?,
+                        drop,
+                    };
+                    ctx.globals().set(name, sprite)
                 })
                 .map_err(ScriptError::new_other)?,
             )

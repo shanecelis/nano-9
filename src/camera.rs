@@ -5,6 +5,7 @@ use bevy_mod_scripting::lua::prelude::tealr::mlu::mlua::{UserData, UserDataField
 
 use crate::{EntityRep, UserDataComponent};
 
+#[derive(Clone)]
 pub struct N9Camera(pub Entity);
 
 impl EntityRep for N9Camera {
