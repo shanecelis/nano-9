@@ -209,6 +209,22 @@
 							"fieldInstances": [],
 							"__worldX": 16,
 							"__worldY": 240
+						},
+						{
+							"__identifier": "Slime",
+							"__grid": [5,7],
+							"__pivot": [0,0],
+							"__tags": [],
+							"__tile": null,
+							"__smartColor": "#BE4A2F",
+							"iid": "21deb710-4ce0-11ef-9af6-1701b4629094",
+							"width": 16,
+							"height": 16,
+							"defUid": 1,
+							"px": [80,112],
+							"fieldInstances": [],
+							"__worldX": 80,
+							"__worldY": 240
 						}
 					]
 				},

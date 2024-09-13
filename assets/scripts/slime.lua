@@ -1,3 +1,5 @@
+
+anim_speed = 8
 slime_animate = {
     idle = {
         index = 0,
@@ -23,7 +25,7 @@ function slime_new()
     slime_idle = image:load("images/slime/slime.png")
     slime_idle:set_grid(16,16,7,3)
     local s1 = slime_idle:spr(0)
-    s1.y = ground
+    --s1.y = ground
     s1.anchor = { 0, -1 }
     return {
         sprite = s1,

@@ -129,15 +129,16 @@ impl FromLua<'_> for N9TextStyle {
 
 impl UserData for N9TextStyle {
     fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
-        methods.add_method_mut("print", |ctx, this, (str, x, y): (String, Option<f32>, Option<f32>)| {
+        methods.add_method_mut("print", |ctx, this, (str, x, y, z): (String, Option<f32>, Option<f32>, Option<f32>)| {
             let world = ctx.get_world()?;
             let mut world = world.write();
             let x = x.unwrap_or(0.0);
             let y = y.unwrap_or(0.0);
+            let z = z.unwrap_or(0.0);
             let id = world
                 .spawn(Text2dBundle {
                     text: Text::from_section(str, this.0.clone()),
-                    transform: Transform::from_xyz(x, y, 0.0),
+                    transform: Transform::from_xyz(x, y, z),
                     ..default()
                 })
                 .id();

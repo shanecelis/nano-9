@@ -232,19 +232,24 @@ pub fn send_update(mut events: PriorityEventWriter<LuaEvent<N9Arg>>) {
 }
 
 /// Sends initialization event
-pub fn send_init(mut events: PriorityEventWriter<LuaEvent<N9Arg>>) {
-    eprintln!("init");
-    events.send(
-        LuaEvent {
-            hook_name: "_init".to_owned(),
-            args: N9Arg::default(),
-            recipients: Recipients::All,
-        },
-        0,
-    )
+pub fn send_init(
+    mut loaded: EventReader<ScriptLoaded>,
+    mut events: PriorityEventWriter<LuaEvent<N9Arg>>) {
+
+    for e in loaded.read() {
+        eprintln!("init {}", e.sid);
+        events.send(
+            LuaEvent {
+                hook_name: "_init".to_owned(),
+                args: N9Arg::default(),
+                recipients: Recipients::ScriptID(e.sid),
+            },
+            0,
+        )
+    }
 }
 
-/// Sends initialization event
+/// Sends draw event
 pub fn send_draw(mut events: PriorityEventWriter<LuaEvent<N9Arg>>) {
     events.send(
         LuaEvent {
@@ -322,7 +327,10 @@ impl Plugin for Nano9Plugin {
         // .add_systems(PreUpdate, send_init.run_if(on_asset_modified::<LuaFile>()))
         .add_systems(
             PreUpdate,
-            (set_background, set_camera, send_init)
+            send_init)
+        .add_systems(
+            PreUpdate,
+            (set_background, set_camera)
                 .chain()
                 .run_if(on_event::<ScriptLoaded>()),
         )
