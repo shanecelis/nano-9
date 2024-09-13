@@ -35,9 +35,24 @@ animate = {
     }
 }
 
+
+function _ldtk_entity(id, entity)
+
+    print("slime entity inited")
+    local s = slime_new()
+
+    local Transform = world:get_type_by_name("Transform")
+    local t = world:get_component(entity,Transform)
+    s.sprite.x = t.translation.x
+    s.sprite.y = t.translation.y
+    s.sprite.z = t.translation.z
+    print("set slime position.")
+    table.insert(slimes, s)
+end
+
 -- _init() is called once per load.
 function _init()
-    lvl = level:load("levels/a.ldtk", { ["Slime"] = "scripts/entity/slime.lua" })
+    lvl = level:load("levels/a.ldtk")--, { ["Slime"] = "scripts/entity/slime.lua" })
     --text.default:print("Hello world")
     music = audio:load("music/Comfortable Mystery.ogg")
     m = music:play_loop()

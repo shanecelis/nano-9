@@ -43,6 +43,10 @@ pub enum N9Arg {
         sprite: Entity,
         drop: DropPolicy,
     },
+    EntityAdded {
+        instance: bevy_ecs_ldtk::EntityInstance,
+        entity: Entity
+    }
 }
 
 impl UserData for N9Arg {}

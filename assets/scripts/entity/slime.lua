@@ -6,9 +6,10 @@ function _init()
 
     local Transform = world:get_type_by_name("Transform")
     local t = world:get_component(entity,Transform)
-    s.x = t.translation.x
-    s.y = t.translation.y
-    s.z = t.translation.z
+    s.sprite.x = t.translation.x
+    s.sprite.y = t.translation.y
+    s.sprite.z = t.translation.z
+    print("set slime position.")
 end
 
 function _update()

@@ -68,23 +68,36 @@ impl UserData for N9LevelLoader {
 fn process_entities(
     mut commands: Commands,
     new_entity_instances: Query<(Entity, &EntityInstance), Added<EntityInstance>>,
-    processor: Query<&N9LevelProcessor>,
+    // processor: Query<&N9LevelProcessor>,
     assets: Res<AssetServer>,
+    mut events: PriorityEventWriter<LuaEvent<N9Arg>>,
 )
 {
-    let Ok(processor) = processor.get_single() else { return; };
+    // let Ok(processor) = processor.get_single() else { return; };
 
     // info!("process entities");
     for (entity, entity_instance) in new_entity_instances.iter() {
-        info!("Looking for entity {}", entity_instance.identifier);
-        if let Some(path) = processor.0.get(&entity_instance.identifier) {
-            info!("Found entity {}", entity_instance.identifier);
-            commands.entity(entity)
-                .insert(ScriptCollection::<LuaFile> {
-                    scripts: vec![Script::new(path.clone(),
-                                              assets.load(path))]
-                });
-        }
+        events.send(
+            LuaEvent {
+                hook_name: "_ldtk_entity".to_owned(),
+                args: N9Arg::SetSprite {
+                    name: "background".into(),
+                    sprite: id,
+                    drop: DropPolicy::Nothing,
+                },
+                recipients: Recipients::All,
+            },
+            0,
+        );
+        // info!("Looking for entity {}", entity_instance.identifier);
+        // if let Some(path) = processor.0.get(&entity_instance.identifier) {
+        //     info!("Found entity {}", entity_instance.identifier);
+        //     commands.entity(entity)
+        //         .insert(ScriptCollection::<LuaFile> {
+        //             scripts: vec![Script::new(path.clone(),
+        //                                       assets.load(path))]
+        //         });
+        // }
     }
 }
 
