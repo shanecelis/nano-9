@@ -41,18 +41,21 @@ function _ldtk_entity(id, entity)
     print("slime entity inited")
     local s = slime_new()
 
-    local Transform = world:get_type_by_name("Transform")
-    local t = world:get_component(entity,Transform)
-    s.sprite.x = t.translation.x
-    s.sprite.y = t.translation.y
-    s.sprite.z = t.translation.z
-    print("set slime position.")
+
+    s.sprite.parent = entity
+    -- local Transform = world:get_type_by_name("Transform")
+    -- local t = world:get_component(entity,Transform)
+    -- s.sprite.x = t.translation.x
+    -- s.sprite.y = t.translation.y
+    -- s.sprite.z = t.translation.z
+    -- print("set slime position.")
     table.insert(slimes, s)
 end
 
 -- _init() is called once per load.
 function _init()
     lvl = level:load("levels/a.ldtk")--, { ["Slime"] = "scripts/entity/slime.lua" })
+    lvl.z = -1
     --text.default:print("Hello world")
     music = audio:load("music/Comfortable Mystery.ogg")
     m = music:play_loop()
@@ -84,15 +87,15 @@ function _init()
     h2.y = 64
     h2.x = -50
 
-    s1 = slime_new()
-    s2 = slime_new()
-    s2.sprite.x = 22
+    -- s1 = slime_new()
+    -- s2 = slime_new()
+    -- s2.sprite.x = 22
+    -- slimes = { s1, s2 }
 
-    slimes = { s1, s2 }
-
+    slimes = {}
 
     -- clear the screen
-    cls(1)
+    -- cls(1)
 end
 
 -- _draw() is called once per frame, or 60 times a second.
@@ -110,8 +113,8 @@ function _draw()
             last_meow = meow_sound:sfx()
         end
         for i,slime in ipairs(slimes) do
-            paw_x = s.x + 16
-            distance = math.abs( paw_x - slime.sprite.x )
+            paw_x = s.global.x + 16
+            distance = math.abs( paw_x - slime.sprite.global.x )
             print("hit distance ", distance)
             if distance <= 1.5 then
                 slime_hit(slime)
@@ -162,8 +165,9 @@ function _draw()
         end
     end
 
-    camera.x = s.x
-    camera.y = s.y
+    -- Make camera follow cat.
+    -- camera.x = s.x
+    -- camera.y = s.y
     --Gravity
     --if true stop at 64
     is_in_air = s.y > ground

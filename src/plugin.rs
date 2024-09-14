@@ -1,5 +1,5 @@
 #![allow(deprecated)]
-use std::sync::Arc;
+use std::sync::{Mutex, Arc};
 use bevy::{
     prelude::*,
     reflect::Reflect,
@@ -75,7 +75,7 @@ pub fn setup_image(
             depth_or_array_layers: 1,
         },
         TextureDimension::D2,
-        &[0u8, 0u8, 0u8, 255u8],
+        &[0u8, 0u8, 0u8, 0u8],
         TextureFormat::Rgba8UnormSrgb,
         RenderAssetUsages::RENDER_WORLD | RenderAssetUsages::MAIN_WORLD,
     );
@@ -95,10 +95,10 @@ pub fn set_background(
                 args: {
                     let mut args = Variadic::new();
                     args.push(N9Arg::String("background".into()));
-                    args.push(N9Arg::Sprite(Arc::new(N9Sprite {
+                    args.push(N9Arg::Sprite(Arc::new(Mutex::new(N9Sprite {
                         entity: id,
                         drop: DropPolicy::Nothing
-                    })));
+                    }))));
                     // args.push(N9Arg::DropPolicy(DropPolicy::Nothing));
                     // N9Arg::SetSprite {
                     // name: "background".into(),

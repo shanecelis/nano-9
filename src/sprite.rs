@@ -59,6 +59,14 @@ pub struct N9Sprite {
     pub drop: DropPolicy,
 }
 
+pub struct N9LocalTransform {
+    entity: Entity,
+}
+
+pub struct N9GlobalTransform {
+    entity: Entity,
+}
+
 impl Drop for N9Sprite {
     fn drop(&mut self) {
         if matches!(self.drop, DropPolicy::Despawn) {
@@ -88,11 +96,13 @@ impl<T: EntityRep> UserDataComponent for T {
             let mut world = world.write();
             let mut system_state: SystemState<Query<&Parent>> = SystemState::new(&mut world);
             let parents = system_state.get(&world);
-            parents
-                .get(this.entity())
-                .map(|p| LuaEntity::new(p.get()))
-                // .map(|p| p.get())
-                .map_err(|e| LuaError::RuntimeError("No parent available".into()))
+            if let Ok(p) = parents.get(this.entity()) {
+
+                LuaEntity::new(p.get()).into_lua(ctx)
+            } else {
+                Ok(Value::Nil)
+            }
+            // .map_err(|e| LuaError::RuntimeError("No parent available".into()))
         });
         fields.add_field_method_set("parent", |ctx, this, parent: LuaEntity| {
             let world = ctx.get_world()?;
@@ -176,13 +186,123 @@ impl UserDataComponent for Transform {
             Ok(())
         });
 
+        fields.add_field_method_get("global", |ctx, this| Ok(N9GlobalTransform { entity: this.entity() }));
         fields.add_field_method_get("entity", |ctx, this| Ok(LuaEntity::new(this.entity())));
+
+    }
+}
+
+impl UserDataComponent for GlobalTransform {
+    fn add_fields<'lua, S: EntityRep, F: UserDataFields<'lua, S>>(fields: &mut F) {
+        fields.add_field_method_get("x", |ctx, this| {
+            let world = ctx.get_world()?;
+            let mut world = world.write();
+            let mut system_state: SystemState<Query<&GlobalTransform>> = SystemState::new(&mut world);
+            let transforms = system_state.get(&mut world);
+            let transform = transforms.get(this.entity()).unwrap();
+            Ok(transform.translation().x)
+        });
+
+        fields.add_field_method_set("x", |ctx, this, value: f32| {
+            let world = ctx.get_world()?;
+            let mut world = world.write();
+            let mut system_state: SystemState<Query<(&mut Transform, &GlobalTransform)>> = SystemState::new(&mut world);
+            let mut transforms = system_state.get_mut(&mut world);
+            let (mut transform, global) = transforms.get_mut(this.entity()).unwrap();
+            let m = global.compute_matrix().inverse();
+            let mut p = global.translation();
+            p.x = value;
+            transform.translation = m.transform_vector3(p);
+            Ok(())
+        });
+
+        fields.add_field_method_get("y", |ctx, this| {
+            let world = ctx.get_world()?;
+            let mut world = world.write();
+            let mut system_state: SystemState<Query<&mut GlobalTransform>> = SystemState::new(&mut world);
+            let mut transforms = system_state.get_mut(&mut world);
+            let transform = transforms.get_mut(this.entity()).unwrap();
+            Ok(transform.translation().y)
+        });
+
+        fields.add_field_method_set("y", |ctx, this, value: f32| {
+            let world = ctx.get_world()?;
+            let mut world = world.write();
+            let mut system_state: SystemState<Query<(&mut Transform, &GlobalTransform)>> = SystemState::new(&mut world);
+            let mut transforms = system_state.get_mut(&mut world);
+            let (mut transform, global) = transforms.get_mut(this.entity()).unwrap();
+            let m = global.compute_matrix().inverse();
+            let mut p = global.translation();
+            p.y = value;
+            transform.translation = m.transform_vector3(p);
+            Ok(())
+        });
+
+        fields.add_field_method_get("z", |ctx, this| {
+            let world = ctx.get_world()?;
+            let mut world = world.write();
+            let mut system_state: SystemState<Query<&GlobalTransform>> = SystemState::new(&mut world);
+            let transforms = system_state.get(&mut world);
+            let transform = transforms.get(this.entity()).unwrap();
+            Ok(transform.translation().z)
+        });
+
+        fields.add_field_method_set("z", |ctx, this, value: f32| {
+            let world = ctx.get_world()?;
+            let mut world = world.write();
+            let mut system_state: SystemState<Query<(&mut Transform, &GlobalTransform)>> = SystemState::new(&mut world);
+            let mut transforms = system_state.get_mut(&mut world);
+            let (mut transform, global) = transforms.get_mut(this.entity()).unwrap();
+            let m = global.compute_matrix().inverse();
+            let mut p = global.translation();
+            p.z = value;
+            transform.translation = m.transform_vector3(p);
+            Ok(())
+        });
+
+        fields.add_field_method_set("parent", |ctx, this, parent: LuaEntity| {
+            let world = ctx.get_world()?;
+            let mut world = world.write();
+            let cmd = PushChildInPlace {
+                child: this.entity(),
+                parent: parent.inner()?,
+            };
+            cmd.apply(&mut world);
+            Ok(())
+        });
+
+        fields.add_field_method_get("entity", |ctx, this| Ok(LuaEntity::new(this.entity())));
+        fields.add_field_method_get("loc", |ctx, this| Ok(N9LocalTransform { entity: this.entity() }));
     }
 }
 
 impl EntityRep for N9Sprite {
     fn entity(&self) -> Entity {
         self.entity
+    }
+}
+
+impl EntityRep for N9LocalTransform {
+    fn entity(&self) -> Entity {
+        self.entity
+    }
+}
+
+impl UserData for N9LocalTransform {
+    fn add_fields<'lua, F: UserDataFields<'lua, Self>>(fields: &mut F) {
+        Transform::add_fields::<'lua, Self, _>(fields);
+    }
+}
+
+impl EntityRep for N9GlobalTransform {
+    fn entity(&self) -> Entity {
+        self.entity
+    }
+}
+
+impl UserData for N9GlobalTransform {
+    fn add_fields<'lua, F: UserDataFields<'lua, Self>>(fields: &mut F) {
+        GlobalTransform::add_fields::<'lua, Self, _>(fields);
     }
 }
 
