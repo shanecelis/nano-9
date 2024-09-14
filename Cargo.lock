@@ -725,7 +725,7 @@ dependencies = [
 [[package]]
 name = "bevy_event_priority"
 version = "0.6.0"
-source = "git+https://github.com/makspll/bevy_mod_scripting.git?branch=main#26f98695da74268e036a2c3ab7379f24683cca2a"
+source = "git+https://github.com/makspll/bevy_mod_scripting.git?branch=main#d025dbd81f2db4163655be6712131f51751035b4"
 dependencies = [
  "bevy",
 ]
@@ -934,7 +934,7 @@ dependencies = [
 [[package]]
 name = "bevy_mod_scripting"
 version = "0.6.0"
-source = "git+https://github.com/makspll/bevy_mod_scripting.git?branch=main#26f98695da74268e036a2c3ab7379f24683cca2a"
+source = "git+https://github.com/makspll/bevy_mod_scripting.git?branch=main#d025dbd81f2db4163655be6712131f51751035b4"
 dependencies = [
  "bevy",
  "bevy_mod_scripting_core",
@@ -945,7 +945,7 @@ dependencies = [
 [[package]]
 name = "bevy_mod_scripting_common"
 version = "0.6.0"
-source = "git+https://github.com/makspll/bevy_mod_scripting.git?branch=main#26f98695da74268e036a2c3ab7379f24683cca2a"
+source = "git+https://github.com/makspll/bevy_mod_scripting.git?branch=main#d025dbd81f2db4163655be6712131f51751035b4"
 dependencies = [
  "convert_case 0.5.0",
  "darling",
@@ -962,7 +962,7 @@ dependencies = [
 [[package]]
 name = "bevy_mod_scripting_core"
 version = "0.6.0"
-source = "git+https://github.com/makspll/bevy_mod_scripting.git?branch=main#26f98695da74268e036a2c3ab7379f24683cca2a"
+source = "git+https://github.com/makspll/bevy_mod_scripting.git?branch=main#d025dbd81f2db4163655be6712131f51751035b4"
 dependencies = [
  "anyhow",
  "bevy",
@@ -975,7 +975,7 @@ dependencies = [
 [[package]]
 name = "bevy_mod_scripting_lua"
 version = "0.6.0"
-source = "git+https://github.com/makspll/bevy_mod_scripting.git?branch=main#26f98695da74268e036a2c3ab7379f24683cca2a"
+source = "git+https://github.com/makspll/bevy_mod_scripting.git?branch=main#d025dbd81f2db4163655be6712131f51751035b4"
 dependencies = [
  "anyhow",
  "bevy",
@@ -988,7 +988,7 @@ dependencies = [
 [[package]]
 name = "bevy_mod_scripting_lua_derive"
 version = "0.6.0"
-source = "git+https://github.com/makspll/bevy_mod_scripting.git?branch=main#26f98695da74268e036a2c3ab7379f24683cca2a"
+source = "git+https://github.com/makspll/bevy_mod_scripting.git?branch=main#d025dbd81f2db4163655be6712131f51751035b4"
 dependencies = [
  "bevy_mod_scripting_common",
  "convert_case 0.5.0",
@@ -1154,7 +1154,7 @@ dependencies = [
 [[package]]
 name = "bevy_script_api"
 version = "0.6.0"
-source = "git+https://github.com/makspll/bevy_mod_scripting.git?branch=main#26f98695da74268e036a2c3ab7379f24683cca2a"
+source = "git+https://github.com/makspll/bevy_mod_scripting.git?branch=main#d025dbd81f2db4163655be6712131f51751035b4"
 dependencies = [
  "allocator-api2",
  "bevy",
