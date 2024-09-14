@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use bevy::{audio::PlaybackMode, ecs::system::SystemState, prelude::*};
 
 use bevy_mod_scripting::lua::prelude::tealr::mlu::mlua::{
@@ -65,7 +66,7 @@ impl UserData for N9Audio {
                     },
                 })
                 .id();
-            Ok(N9Sound(id))
+            Ok(Arc::new(N9Sound(id)))
         });
         methods.add_method_mut("play_loop", |ctx, this, _: ()| {
             let world = ctx.get_world()?;
@@ -79,7 +80,7 @@ impl UserData for N9Audio {
                     },
                 })
                 .id();
-            Ok(N9Sound(id))
+            Ok(Arc::new(N9Sound(id)))
         });
     }
 }

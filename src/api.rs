@@ -1,5 +1,5 @@
 #![allow(deprecated)]
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use bevy::{ecs::system::SystemState, prelude::*, reflect::Reflect};
 use bevy_mod_scripting::prelude::*;
@@ -9,7 +9,7 @@ use bevy_mod_scripting::lua::prelude::tealr::mlu::mlua::{self, UserData, Variadi
 // use bevy_pixel_buffer::prelude::*;
 use crate::{
     pixel::PixelAccess, DropPolicy, N9AudioLoader, N9Camera, N9Image, N9ImageLoader, N9Sprite,
-    N9TextLoader, Nano9Palette, Nano9Screen, N9LevelLoader,
+    N9TextLoader, Nano9Palette, Nano9Screen, N9LevelLoader, N9Sound,
 };
 
 #[derive(Clone)]
@@ -36,6 +36,8 @@ impl<'lua> IntoLua<'lua> for N9Arg {
             String(x) => x.into_lua(lua),
             Image(x) => x.into_lua(lua),
             Camera(x) => x.into_lua(lua),
+            Sprite(x) => x.into_lua(lua),
+            Sound(x) => x.into_lua(lua),
             Entity(x) => LuaEntity::new(x).into_lua(lua),
             DropPolicy(x) => x.into_lua(lua),
         }
@@ -47,7 +49,8 @@ pub enum N9Arg {
     String(String),
     Image(N9Image),
     Camera(N9Camera),
-    // Sprite(N9Sprite),
+    Sprite(Arc<N9Sprite>),
+    Sound(Arc<N9Sound>),
     Entity(Entity),
     DropPolicy(DropPolicy),
     // DropPolicy(DropPolicy),

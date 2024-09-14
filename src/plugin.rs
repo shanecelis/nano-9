@@ -1,5 +1,5 @@
 #![allow(deprecated)]
-
+use std::sync::Arc;
 use bevy::{
     prelude::*,
     reflect::Reflect,
@@ -17,7 +17,7 @@ use bevy_mod_scripting::{core::event::ScriptLoaded, prelude::*};
 
 use bevy_mod_scripting::lua::prelude::tealr::mlu::mlua::{Variadic};
 // use bevy_pixel_buffer::prelude::*;
-use crate::{api::{N9Arg, N9Args}, assets::ImageHandles, screens, DropPolicy, N9Camera};
+use crate::{api::{N9Arg, N9Args}, assets::ImageHandles, screens, DropPolicy, N9Camera, N9Sprite};
 
 #[derive(AssetCollection, Resource)]
 struct ImageAssets {
@@ -91,12 +91,15 @@ pub fn set_background(
     if let Ok(id) = screen.get_single() {
         events.send(
             LuaEvent {
-                hook_name: "_set_sprite".to_owned(),
+                hook_name: "_set_global".to_owned(),
                 args: {
                     let mut args = Variadic::new();
                     args.push(N9Arg::String("background".into()));
-                    args.push(N9Arg::Entity(id));
-                    args.push(N9Arg::DropPolicy(DropPolicy::Nothing));
+                    args.push(N9Arg::Sprite(Arc::new(N9Sprite {
+                        entity: id,
+                        drop: DropPolicy::Nothing
+                    })));
+                    // args.push(N9Arg::DropPolicy(DropPolicy::Nothing));
                     // N9Arg::SetSprite {
                     // name: "background".into(),
                     // sprite: id,

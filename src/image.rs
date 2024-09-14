@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use bevy::{ecs::system::SystemState, prelude::*};
 
 use crate::{palette::Nano9Palette, pixel::PixelAccess, DropPolicy, N9Color, N9Sprite, ValueExt};
@@ -94,7 +95,7 @@ impl UserData for N9Image {
             let y = args.pop_front().and_then(|v| v.to_f32()).unwrap_or(0.0);
             // eprintln!("x {x} y {y}");
             if let Some(n) = n {
-                Ok(N9Sprite {
+                Ok(Arc::new(N9Sprite {
                     entity: world
                         .spawn((
                             SpriteBundle {
@@ -109,9 +110,9 @@ impl UserData for N9Image {
                         ))
                         .id(),
                     drop: DropPolicy::Despawn,
-                })
+                }))
             } else {
-                Ok(N9Sprite {
+                Ok(Arc::new(N9Sprite {
                     entity: world
                         .spawn((SpriteBundle {
                             texture: this.handle.clone(),
@@ -120,7 +121,7 @@ impl UserData for N9Image {
                         },))
                         .id(),
                     drop: DropPolicy::Despawn,
-                })
+                }))
             }
         });
 
