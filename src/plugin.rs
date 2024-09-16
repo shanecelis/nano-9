@@ -296,6 +296,33 @@ impl Default for N9Settings {
     }
 }
 
+impl Nano9Plugin {
+
+    pub fn default_plugins(&self) -> bevy::app::PluginGroupBuilder {
+        let settings = &self.settings;
+        let resolution = settings.canvas_size.as_vec2() * settings.pixel_scale;
+        DefaultPlugins
+            .set(WindowPlugin {
+                primary_window: Some(Window {
+                    resolution: WindowResolution::new(resolution.x, resolution.y),
+                    // Turn off vsync to maximize CPU/GPU usage
+                    present_mode: PresentMode::AutoVsync,
+                    // Let's not allow resizing.
+                    // resize_constraints: WindowResizeConstraints {
+                    //     min_width: resolution.x,
+                    //     max_width: resolution.x,
+                    //     min_height: resolution.y,
+                    //     max_height: resolution.y,
+                    // },
+                    ..default()
+                }),
+                ..default()
+            })
+            .set(ImagePlugin::default_nearest())
+            .build()
+    }
+}
+
 impl Plugin for Nano9Plugin {
     fn build(&self, app: &mut App) {
         let settings = &self.settings;
@@ -307,26 +334,6 @@ impl Plugin for Nano9Plugin {
                 16 * 4,
             )),
         })
-        .add_plugins(
-            DefaultPlugins
-                .set(WindowPlugin {
-                    primary_window: Some(Window {
-                        resolution: WindowResolution::new(resolution.x, resolution.y),
-                        // Turn off vsync to maximize CPU/GPU usage
-                        present_mode: PresentMode::AutoVsync,
-                        // Let's not allow resizing.
-                        // resize_constraints: WindowResizeConstraints {
-                        //     min_width: resolution.x,
-                        //     max_width: resolution.x,
-                        //     min_height: resolution.y,
-                        //     max_height: resolution.y,
-                        // },
-                        ..default()
-                    }),
-                    ..default()
-                })
-                .set(ImagePlugin::default_nearest()),
-        )
         .insert_resource(Time::<Fixed>::from_seconds(UPDATE_FREQUENCY.into()))
         .init_resource::<N9Settings>()
         .init_resource::<DrawState>()
@@ -348,14 +355,18 @@ impl Plugin for Nano9Plugin {
                 .run_if(on_event::<ScriptLoaded>()),
         )
         // .add_systems(PreUpdate, (send_init).chain().run_if(on_event::<ScriptLoaded>()))
-        .add_systems(Update, sync_window_size)
-        .add_systems(Update, fullscreen_key)
         .add_systems(
             FixedUpdate,
             (send_update, send_draw)
                 .chain()
                 .run_if(in_state(screens::Screen::Playing)),
         );
+
+        if app.is_plugin_added::<WindowPlugin>() {
+            app
+            .add_systems(Update, sync_window_size)
+            .add_systems(Update, fullscreen_key);
+        }
     }
 }
 pub fn on_asset_modified<T: Asset>() -> impl FnMut(EventReader<AssetEvent<T>>) -> bool + Clone {

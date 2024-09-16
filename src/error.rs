@@ -3,11 +3,15 @@ use bevy_mod_scripting::{core::event::ScriptLoaded, prelude::*};
 
 pub(crate) fn plugin(app: &mut App) {
     app.init_state::<ErrorState>()
-        .add_systems(OnEnter(ErrorState::Empty), hide::<ErrorMessages>)
-        .add_systems(OnExit(ErrorState::Empty), show::<ErrorMessages>)
         .add_systems(Startup, spawn_error_message_layout)
         .add_systems(Update, add_messages)
         .add_systems(Update, clear_messages);
+
+    if app.is_plugin_added::<WindowPlugin>() {
+        app
+            .add_systems(OnEnter(ErrorState::Empty), hide::<ErrorMessages>)
+            .add_systems(OnExit(ErrorState::Empty), show::<ErrorMessages>);
+    }
 }
 
 const FONT_SIZE: f32 = 24.0;

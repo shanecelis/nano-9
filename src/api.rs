@@ -53,29 +53,7 @@ pub enum N9Arg {
     Sound(Arc<Mutex<N9Sound>>),
     Entity(Entity),
     DropPolicy(DropPolicy),
-    // DropPolicy(DropPolicy),
-    // #[default]
-    // None,
-    // ImagePair {
-    //     name: String,
-    //     image: N9Image,
-    // },
-    // SetCamera {
-    //     name: String,
-    //     camera: Entity,
-    // },
-    // SetSprite {
-    //     name: String,
-    //     sprite: Entity,
-    //     drop: DropPolicy,
-    // },
-    // EntityAdded {
-    //     instance: bevy_ecs_ldtk::EntityInstance,
-    //     entity: Entity
-    // }
 }
-
-// impl UserData for N9Arg {}
 
 impl FromLua<'_> for N9Arg {
     fn from_lua(value: Value, _: &Lua) -> mlua::Result<Self> {

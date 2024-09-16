@@ -56,6 +56,8 @@ end
 function _init()
     lvl = level:load("levels/a.ldtk")--, { ["Slime"] = "scripts/entity/slime.lua" })
     lvl.z = -1
+    -- lvl.hi = "hi"
+    -- print("lvl ", lvl.hi)
     --text.default:print("Hello world")
     music = audio:load("music/Comfortable Mystery.ogg")
     m = music:play_loop()

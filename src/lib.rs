@@ -48,8 +48,12 @@ pub(crate) fn plugin(app: &mut App) {
         error::plugin,
         text::plugin,
         // audio::plugin,
-        level::plugin,
+        // level::plugin,
     ));
+    if app.is_plugin_added::<WindowPlugin>() {
+        app.add_plugins(level::plugin);
+    }
+
 
     // Enable dev tools for dev builds.
     // #[cfg(feature = "dev")]
