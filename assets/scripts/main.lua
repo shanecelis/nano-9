@@ -80,12 +80,20 @@ function _init()
     h1.parent = camera.entity
     h1.x = -64
     h1.y = 64
-    h2 = hearts:spr(1)
-    h2.index = 0
-    h2.anchor = { -1, 1 }
-    h2.parent = camera.entity
-    h2.y = 64
-    h2.x = -50
+
+    -- h2 = hearts:spr(1)
+    -- h2.index = 0
+    -- h2.anchor = { -1, 1 }
+    -- h2.parent = camera.entity
+    -- h2.y = 64
+    -- h2.x = -50
+    h2 = hearts:sprite(1)
+    h2.name = "h2"
+    -- h2.Sprite.index = 0
+    -- h2.anchor = { -1, 1 }
+    -- h2.parent = camera.entity
+    h2.Transform.translation.y = 64
+    h2.Transform.translation.x = 50
 
     -- s1 = slime_new()
     -- s2 = slime_new()

@@ -15,6 +15,7 @@ pub mod screens;
 mod sprite;
 mod text;
 mod level;
+mod entity;
 
 pub use audio::*;
 pub use camera::*;
@@ -26,6 +27,7 @@ pub use plugin::*;
 pub use sprite::*;
 pub use text::*;
 pub use level::*;
+pub use entity::*;
 
 #[derive(thiserror::Error, Debug)]
 pub enum N9Error {

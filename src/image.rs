@@ -1,7 +1,7 @@
 use std::sync::{Mutex, Arc};
 use bevy::{ecs::system::SystemState, prelude::*};
 
-use crate::{palette::Nano9Palette, pixel::PixelAccess, DropPolicy, N9Color, N9Sprite, ValueExt};
+use crate::{palette::Nano9Palette, pixel::PixelAccess, DropPolicy, N9Color, N9Sprite, ValueExt, N9Entity};
 use bevy_mod_scripting::lua::prelude::tealr::mlu::mlua::{UserData, UserDataMethods};
 use bevy_mod_scripting::prelude::*;
 
@@ -81,6 +81,49 @@ impl UserData for N9Image {
                 Ok(())
             },
         );
+
+        methods.add_method_mut("sprite", |ctx, this, mut args: LuaMultiValue| {
+            let world = ctx.get_world()?;
+            let mut world = world.write();
+            // eprintln!("args {args:?} {} ", args.len());
+            let n = if args.len() == 2 {
+                None
+            } else {
+                args.pop_front().and_then(|x| x.as_usize())
+            };
+            let x = args.pop_front().and_then(|v| v.to_f32()).unwrap_or(0.0);
+            let y = args.pop_front().and_then(|v| v.to_f32()).unwrap_or(0.0);
+            // eprintln!("x {x} y {y}");
+            Ok(Arc::new(Mutex::new(if let Some(n) = n {
+                N9Entity {
+                    entity: world
+                        .spawn((
+                            SpriteBundle {
+                                texture: this.handle.clone(),
+                                transform: Transform::from_xyz(x, y, 0.0),
+                                ..default()
+                            },
+                            TextureAtlas {
+                                layout: this.layout.clone().unwrap(),
+                                index: n,
+                            },
+                        ))
+                        .id(),
+                    drop: DropPolicy::Despawn,
+                }
+            } else {
+                N9Entity {
+                    entity: world
+                        .spawn((SpriteBundle {
+                            texture: this.handle.clone(),
+                            transform: Transform::from_xyz(x, y, 0.0),
+                            ..default()
+                        },))
+                        .id(),
+                    drop: DropPolicy::Despawn,
+                }
+            })))
+        });
 
         methods.add_method_mut("spr", |ctx, this, mut args: LuaMultiValue| {
             let world = ctx.get_world()?;
