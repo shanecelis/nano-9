@@ -33,7 +33,7 @@ pub fn reserve_entities(world: &mut World) {
     let Some(entities) = reserved_entities() else {
         return;
     };
-    let delta = RESERVE_ENTITY_COUNT - entities.len();
+    let delta = RESERVE_ENTITY_COUNT.saturating_sub(entities.len());
     if delta > 0 {
         for e in world.entities().reserve_entities(delta as u32) {
             entities.push(e);
