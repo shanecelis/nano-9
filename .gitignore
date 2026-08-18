@@ -5,3 +5,4 @@
 /tests/golden/*-actual.png
 /tests/golden/*-diff.png
 /tests/golden/*-compare.png
+/tests/golden/*-expected.png

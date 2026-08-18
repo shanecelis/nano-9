@@ -1,36 +1,107 @@
 #!/usr/bin/env bash
-# Generate Pico-8 golden screenshots as tests/golden/{name}-expected.png.
+# Run one Pico-8 cart and write its screenshot to -o.
 # Requires a Pico-8 binary. Default: `p8` on PATH (e.g. $HOME/bin/p8).
+#
+#   bin/golden-pico8 tests/golden/line.p8 -o tests/golden/line-expected.png
+#
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-GOLDEN="$ROOT/tests/golden"
-PICO8_CMD="${PICO8:-p8}"
+usage() {
+  echo "usage: $0 CART -o SCREENSHOT" >&2
+  exit 2
+}
 
-if ! command -v "$PICO8_CMD" >/dev/null 2>&1 && [[ ! -x "$PICO8_CMD" ]]; then
+# Follow symlinks so pico8.dat is found next to the real binary
+# ($HOME/bin/p8 -> PICO-8.app/Contents/MacOS/pico8).
+resolve_exe() {
+  local cmd="$1" path
+  if [[ "$cmd" == */* ]]; then
+    path="$cmd"
+  else
+    path="$(command -v "$cmd")" || return 1
+  fi
+  [[ -e "$path" ]] || return 1
+  while [[ -L "$path" ]]; do
+    local link dir
+    link="$(readlink "$path")"
+    dir="$(cd "$(dirname "$path")" && pwd -P)"
+    if [[ "$link" == /* ]]; then
+      path="$link"
+    else
+      path="$dir/$link"
+    fi
+  done
+  echo "$(cd "$(dirname "$path")" && pwd -P)/$(basename "$path")"
+}
+
+cart=""
+output=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -o)
+      [[ $# -ge 2 ]] || usage
+      output="$2"
+      shift 2
+      ;;
+    -h | --help)
+      usage
+      ;;
+    -*)
+      echo "error: unknown option $1" >&2
+      usage
+      ;;
+    *)
+      [[ -z "$cart" ]] || usage
+      cart="$1"
+      shift
+      ;;
+  esac
+done
+
+[[ -n "$cart" && -n "$output" ]] || usage
+[[ -f "$cart" ]] || {
+  echo "error: cart not found: $cart" >&2
+  exit 1
+}
+
+PICO8_CMD="${PICO8:-p8}"
+if ! PICO8_BIN="$(resolve_exe "$PICO8_CMD")"; then
   echo "error: Pico-8 binary not found ($PICO8_CMD). Set PICO8 or put p8 on PATH." >&2
   exit 1
 fi
 
-# Resolve symlinks so pico8.dat is found next to the real binary
-# ($HOME/bin/p8 -> PICO-8.app/Contents/MacOS/pico8).
-PICO8_BIN="$(python3 -c 'import os, shutil, sys
-cmd = sys.argv[1]
-path = cmd if os.path.sep in cmd or os.path.exists(cmd) else shutil.which(cmd)
-if not path:
-    sys.exit("cannot find " + cmd)
-print(os.path.realpath(path))' "$PICO8_CMD")"
+name="$(basename "$cart")"
+name="${name%.p8}"
+name="${name%.P8}"
+
+tmp="$(mktemp -d)"
+trap 'rm -rf "$tmp"' EXIT
 
 echo "using $PICO8_BIN"
-for cart in "$GOLDEN"/*.p8; do
-  name="$(basename "$cart" .p8)"
-  echo "generating $name"
-  "$PICO8_BIN" -x "$cart" -screenshot_scale 1 -root_path "$GOLDEN" -windowed 1
-  if [[ ! -f "$GOLDEN/${name}.png" ]]; then
-    echo "error: expected $GOLDEN/${name}.png was not written" >&2
-    exit 1
-  fi
-  mv "$GOLDEN/${name}.png" "$GOLDEN/${name}-expected.png"
-done
+"$PICO8_BIN" -x "$cart" -screenshot_scale 1 -root_path "$tmp" -windowed 1
 
-echo "goldens written to $GOLDEN as *-expected.png"
+src=""
+if [[ -f "$tmp/${name}.png" ]]; then
+  src="$tmp/${name}.png"
+else
+  shopt -s nullglob
+  pngs=("$tmp"/*.png)
+  shopt -u nullglob
+  if [[ ${#pngs[@]} -eq 1 ]]; then
+    src="${pngs[0]}"
+  fi
+fi
+
+if [[ -z "$src" ]]; then
+  echo "error: Pico-8 did not write a screenshot for $cart" >&2
+  exit 1
+fi
+
+if [ -f "$src" ]; then
+    mkdir -p "$(dirname "$output")"
+    mv "$src" "$output"
+    echo "wrote $output"
+else
+    echo "warn: no screenshot output at '$src'." >&2;
+    exit 2;
+fi

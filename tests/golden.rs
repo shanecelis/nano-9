@@ -1,8 +1,8 @@
 //! Compare Nano-9 screenshots against Pico-8 goldens in `tests/golden/`.
 //!
-//! Generate goldens:
+//! Generate goldens (Pico-8 required):
 //! ```sh
-//! bin/golden-pico8
+//! make golden
 //! ```
 //!
 //! Run (GPU window required). Some primitives mismatch; that is expected —

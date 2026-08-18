@@ -1,5 +1,5 @@
 # TODO
-- [ ] Do not use python in golden-pico8.sh.
+- [x] Do not use python in golden-pico8.sh.
 - [ ] Move font up one pixel.
 - [x] change file names of golden files to include actual and expected in the same directory.
 - [ ] Pico-8 palette colors are different:
