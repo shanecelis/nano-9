@@ -1,7 +1,7 @@
 use super::*;
 use crate::translate::Position;
 use bevy::{
-    camera::Viewport,
+    camera::{CompositingSpace, Viewport},
     window::{PrimaryWindow, WindowResized},
 };
 
@@ -144,6 +144,9 @@ fn spawn_camera(
                 parent.spawn((
                     Name::new("camera"),
                     Camera2d,
+                    // Keep `Color::srgba_*` bit-exact: shaders write gamma-encoded
+                    // values, matching the palette PNG and image editors.
+                    CompositingSpace::Srgb,
                     Projection::Orthographic(OrthographicProjection::default_2d()),
                     IsDefaultUiCamera,
                     InheritedVisibility::default(),
