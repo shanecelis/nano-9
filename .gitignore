@@ -2,3 +2,5 @@
 .DS_Store
 /carts/
 /carts
+/tests/golden/actual/
+/tests/golden/expected/

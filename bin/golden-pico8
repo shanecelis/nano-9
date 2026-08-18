@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Generate Pico-8 golden screenshots into tests/golden/expected/.
+# Requires a Pico-8 binary. Default: `p8` on PATH (e.g. $HOME/bin/p8).
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+GOLDEN="$ROOT/tests/golden"
+EXPECTED="$GOLDEN/expected"
+PICO8_CMD="${PICO8:-p8}"
+
+if ! command -v "$PICO8_CMD" >/dev/null 2>&1 && [[ ! -x "$PICO8_CMD" ]]; then
+  echo "error: Pico-8 binary not found ($PICO8_CMD). Set PICO8 or put p8 on PATH." >&2
+  exit 1
+fi
+
+# Resolve symlinks so pico8.dat is found next to the real binary
+# ($HOME/bin/p8 -> PICO-8.app/Contents/MacOS/pico8).
+PICO8_BIN="$(python3 -c 'import os, shutil, sys
+cmd = sys.argv[1]
+path = cmd if os.path.sep in cmd or os.path.exists(cmd) else shutil.which(cmd)
+if not path:
+    sys.exit("cannot find " + cmd)
+print(os.path.realpath(path))' "$PICO8_CMD")"
+
+mkdir -p "$EXPECTED"
+
+echo "using $PICO8_BIN"
+for cart in "$GOLDEN"/*.p8; do
+  name="$(basename "$cart" .p8)"
+  echo "generating $name"
+  "$PICO8_BIN" -x "$cart" -screenshot_scale 1 -root_path "$EXPECTED" -windowed 1
+  if [[ ! -f "$EXPECTED/${name}.png" ]]; then
+    echo "error: expected $EXPECTED/${name}.png was not written" >&2
+    exit 1
+  fi
+done
+
+echo "goldens written to $EXPECTED"

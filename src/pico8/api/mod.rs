@@ -40,7 +40,7 @@ mod level;
 mod poke;
 #[cfg(feature = "rand")]
 mod rand;
-mod sys;
+pub(crate) mod sys;
 #[cfg(feature = "level")]
 pub use level::*;
 mod mesh;

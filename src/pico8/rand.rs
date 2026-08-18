@@ -1,12 +1,11 @@
 use crate::pico8::Error;
-use ::rand::Rng;
+use ::rand::{Rng, RngExt};
 use bevy::{ecs::system::SystemParam, prelude::*};
 use bevy_mod_scripting::bindings::InteropError;
 #[cfg(feature = "scripting")]
 use bevy_mod_scripting::bindings::ScriptValue;
 use bevy_prng::WyRand;
 use bevy_rand::prelude::{EntropyPlugin, RngSeed, SeedSource};
-use rand::RngCore;
 
 #[derive(Debug, Component)]
 struct Source;
@@ -48,7 +47,7 @@ impl Rand8<'_, '_> {
                     ScriptValue::Unit
                 } else {
                     let index = rng.next_u64() as usize % x.len();
-                    x.swap_remove(index)
+                    x.remove(index).unwrap_or(ScriptValue::Unit)
                 }
             }
             _ => ScriptValue::Error(InteropError::external(Box::new(Error::InvalidArgument(

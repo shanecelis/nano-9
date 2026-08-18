@@ -98,6 +98,7 @@ dev-tools = []
 [dev-dependencies]
 bevy = "0.19"
 version-sync = "0.9.5"
+png = "0.17.16"
 
 [[bin]]
 name = "n9"
