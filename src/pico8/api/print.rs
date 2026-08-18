@@ -242,8 +242,7 @@ mod lua {
     use bevy_mod_scripting::{
         bindings::InteropError,
         bindings::{
-            VariadicTuple,
-            IntoScript,
+            IntoScript, VariadicTuple,
             function::{
                 namespace::{GlobalNamespace, NamespaceBuilder},
                 script_function::FunctionCallContext,
@@ -346,11 +345,13 @@ mod lua {
 
                         Ok(pico8.cursor(pos, color))
                     })?;
-                    Ok(ScriptValue::Tuple(VariadicTuple(std::collections::VecDeque::from([
-                        ScriptValue::Float(last_pos.x as f64),
-                        ScriptValue::Float(last_pos.y as f64),
-                        last_color.into_script(ctx.world()?)?,
-                    ]))))
+                    Ok(ScriptValue::Tuple(VariadicTuple(
+                        std::collections::VecDeque::from([
+                            ScriptValue::Float(last_pos.x as f64),
+                            ScriptValue::Float(last_pos.y as f64),
+                            last_color.into_script(ctx.world()?)?,
+                        ]),
+                    )))
                 },
             )
             .register("sub", |s: String, start: isize, end: Option<isize>| {

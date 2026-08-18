@@ -48,11 +48,11 @@ mod lua {
     use std::collections::VecDeque;
 
     use bevy_mod_scripting::bindings::{
-        ScriptValue,
-        VariadicTuple,
+        ScriptValue, VariadicTuple,
         function::{
-        namespace::{GlobalNamespace, NamespaceBuilder},
-        script_function::FunctionCallContext}
+            namespace::{GlobalNamespace, NamespaceBuilder},
+            script_function::FunctionCallContext,
+        },
     };
     pub(crate) fn plugin(app: &mut App) {
         let world = app.world_mut();
@@ -64,8 +64,12 @@ mod lua {
                     let arg = x.map(|x| Vec2::new(x, y.unwrap_or(0.0)));
                     pico8.camera(arg)
                 })
-                .map(|last_pos| ScriptValue::Tuple(VariadicTuple(VecDeque::from([ScriptValue::from(last_pos.x as f64),
-                                                                                 ScriptValue::from(last_pos.y as f64)]))))
+                .map(|last_pos| {
+                    ScriptValue::Tuple(VariadicTuple(VecDeque::from([
+                        ScriptValue::from(last_pos.x as f64),
+                        ScriptValue::from(last_pos.y as f64),
+                    ])))
+                })
             },
         );
     }

@@ -104,25 +104,24 @@ impl super::Pico8<'_, '_> {
         }
         let canvas_size = self.canvas.size;
         self.extcmd.capturing = true;
-        self.commands
-            .spawn(Screenshot::primary_window())
-            .observe(
-                move |captured: On<ScreenshotCaptured>,
-                      cameras: Query<&Camera, With<Nano9Camera>>,
-                      mut commands: Commands,
-                      mut extcmd: ResMut<ExtcmdState>| {
-                    if let Err(e) = save_captured_screenshot(&captured.image, cameras, canvas_size, &path)
-                    {
-                        error!("extcmd(\"screen\") failed: {e}");
-                    } else {
-                        info!("Screenshot saved to {}", path.display());
-                    }
-                    extcmd.capturing = false;
-                    if extcmd.shutdown_after {
-                        commands.write_message(AppExit::Success);
-                    }
-                },
-            );
+        self.commands.spawn(Screenshot::primary_window()).observe(
+            move |captured: On<ScreenshotCaptured>,
+                  cameras: Query<&Camera, With<Nano9Camera>>,
+                  mut commands: Commands,
+                  mut extcmd: ResMut<ExtcmdState>| {
+                if let Err(e) =
+                    save_captured_screenshot(&captured.image, cameras, canvas_size, &path)
+                {
+                    error!("extcmd(\"screen\") failed: {e}");
+                } else {
+                    info!("Screenshot saved to {}", path.display());
+                }
+                extcmd.capturing = false;
+                if extcmd.shutdown_after {
+                    commands.write_message(AppExit::Success);
+                }
+            },
+        );
         Ok(())
     }
 }
@@ -208,11 +207,11 @@ mod lua {
     use super::*;
     use crate::pico8::lua::with_pico8;
 
+    use bevy_mod_scripting::bindings::ScriptValue;
     use bevy_mod_scripting::bindings::function::{
         namespace::{GlobalNamespace, NamespaceBuilder},
         script_function::FunctionCallContext,
     };
-    use bevy_mod_scripting::bindings::ScriptValue;
 
     pub(crate) fn plugin(app: &mut App) {
         let world = app.world_mut();

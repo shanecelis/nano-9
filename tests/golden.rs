@@ -28,7 +28,9 @@ fn golden_dir() -> PathBuf {
 fn load_rgb_png(path: &Path) -> (u32, u32, Vec<u8>) {
     let file = File::open(path).unwrap_or_else(|e| panic!("open {}: {e}", path.display()));
     let decoder = png::Decoder::new(file);
-    let mut reader = decoder.read_info().unwrap_or_else(|e| panic!("png {}: {e}", path.display()));
+    let mut reader = decoder
+        .read_info()
+        .unwrap_or_else(|e| panic!("png {}: {e}", path.display()));
     let mut buf = vec![0; reader.output_buffer_size()];
     let info = reader
         .next_frame(&mut buf)
@@ -89,7 +91,13 @@ fn put_pixel(out: &mut [u8], stride: u32, x: u32, y: u32, rgb: [u8; 3]) {
 }
 
 /// Pico-8 | Nano-9 | magenta mismatches, nearest-neighbor scaled so pixels read.
-fn compose_compare(expected: &[u8], actual: &[u8], diff: &[u8], w: u32, h: u32) -> (u32, u32, Vec<u8>) {
+fn compose_compare(
+    expected: &[u8],
+    actual: &[u8],
+    diff: &[u8],
+    w: u32,
+    h: u32,
+) -> (u32, u32, Vec<u8>) {
     const SCALE: u32 = 3;
     const GAP: u32 = 6;
     const BAR: u32 = 8;
@@ -162,13 +170,7 @@ fn show_image(label: &str, path: &Path) {
     let _ = writeln!(tty, "{label}");
     let _ = tty.flush();
     let shown = Command::new("wezterm")
-        .args([
-            "imgcat",
-            "--width",
-            "80%",
-            "--resample-filter",
-            "nearest",
-        ])
+        .args(["imgcat", "--width", "80%", "--resample-filter", "nearest"])
         .arg(path)
         .stdout(tty)
         .stderr(Stdio::null())
@@ -249,7 +251,11 @@ fn run_n9(cart: &Path, actual_dir: &Path) -> Result<(), String> {
 
 enum CartResult {
     Match,
-    Differ { changed: usize, total: usize, compare: PathBuf },
+    Differ {
+        changed: usize,
+        total: usize,
+        compare: PathBuf,
+    },
 }
 
 fn cart_names() -> Vec<String> {
@@ -335,10 +341,7 @@ static GOLDEN_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 fn golden_screenshots() {
     let _guard = GOLDEN_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let names = cart_names();
-    assert!(
-        !names.is_empty(),
-        "no tests/golden/*.p8 carts found"
-    );
+    assert!(!names.is_empty(), "no tests/golden/*.p8 carts found");
 
     let mut rows: Vec<(String, String)> = Vec::new();
     let mut failed: Vec<String> = Vec::new();
@@ -353,7 +356,10 @@ fn golden_screenshots() {
                 let pct = (changed as f64) * 100.0 / total as f64;
                 rows.push((
                     name.clone(),
-                    format!("{changed}/{total} differ ({pct:.2}%)  {}", compare.display()),
+                    format!(
+                        "{changed}/{total} differ ({pct:.2}%)  {}",
+                        compare.display()
+                    ),
                 ));
                 failed.push(name.clone());
             }
