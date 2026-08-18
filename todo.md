@@ -1,4 +1,13 @@
 # TODO
+- [ ] Do not use python in golden-pico8.sh.
+- [ ] Move font up one pixel.
+- [ ] change file names of golden files to include actual and expected in the same directory.
+- [ ] Pico-8 palette colors are different:
+expected white: fff1e8
+actual white: fef0e7
+palette png color: fff1e8
+The plot thickens. The palette color is correct, but Bevy is rendering it differently.
+
 - [ ] Decimate the teapot. Make the file way smaller.
 ## Bevy 0.16 fixes
 - [x] line eg
