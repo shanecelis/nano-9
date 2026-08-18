@@ -1,4 +1,4 @@
-//! Compare Nano-9 screenshots against Pico-8 goldens in `tests/golden/expected/`.
+//! Compare Nano-9 screenshots against Pico-8 goldens in `tests/golden/`.
 //!
 //! Generate goldens:
 //! ```sh
@@ -8,12 +8,13 @@
 //! Run (GPU window required). Some primitives mismatch; that is expected —
 //! the point is to see the diff, not to paper over it:
 //! ```sh
-//! cargo test --test golden -- --nocapture --test-threads=1
+//! cargo test-golden
 //! ```
 //!
-//! Carts are every `tests/golden/*.p8`. On mismatch, a side-by-side PNG
-//! (Pico-8 | Nano-9 | magenta) is written under `tests/golden/actual/` and
-//! shown with `wezterm imgcat` when a tty is available.
+//! Carts are every `tests/golden/*.p8`. Screenshots live next to them as
+//! `{name}-expected.png` (Pico-8) and `{name}-actual.png` (Nano-9). On
+//! mismatch a `{name}-compare.png` is shown with `wezterm imgcat` when a
+//! tty is available.
 
 use std::fs::{self, File};
 use std::io::{BufWriter, Write};
@@ -279,9 +280,9 @@ fn cart_names() -> Vec<String> {
 fn check_cart(name: &str) -> Result<CartResult, String> {
     let dir = golden_dir();
     let cart = dir.join(format!("{name}.p8"));
-    let expected = dir.join("expected").join(format!("{name}.png"));
-    let actual_dir = dir.join("actual");
-    fs::create_dir_all(&actual_dir).map_err(|e| e.to_string())?;
+    let expected = dir.join(format!("{name}-expected.png"));
+    let written = dir.join(format!("{name}.png"));
+    let actual = dir.join(format!("{name}-actual.png"));
 
     if !cart.exists() {
         return Err(format!("missing cart {}", cart.display()));
@@ -293,9 +294,11 @@ fn check_cart(name: &str) -> Result<CartResult, String> {
         ));
     }
 
-    run_n9(&cart, &actual_dir)?;
-
-    let actual = actual_dir.join(format!("{name}.png"));
+    let _ = fs::remove_file(&written);
+    run_n9(&cart, &dir)?;
+    if written.exists() {
+        fs::rename(&written, &actual).map_err(|e| e.to_string())?;
+    }
     if !actual.exists() {
         return Err(format!("n9 did not write {}", actual.display()));
     }
@@ -313,10 +316,10 @@ fn check_cart(name: &str) -> Result<CartResult, String> {
     }
 
     let (diff, changed) = make_diff(&ebytes, &abytes);
-    let diff_path = actual_dir.join(format!("{name}.diff.png"));
+    let diff_path = dir.join(format!("{name}-diff.png"));
     write_rgb_png(&diff_path, ew, eh, &diff);
     let (cw, ch, compare) = compose_compare(&ebytes, &abytes, &diff, ew, eh);
-    let compare_path = actual_dir.join(format!("{name}.compare.png"));
+    let compare_path = dir.join(format!("{name}-compare.png"));
     write_rgb_png(&compare_path, cw, ch, &compare);
     let total = (ew * eh) as usize;
     let pct = (changed as f64) * 100.0 / total as f64;

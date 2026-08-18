@@ -1,7 +1,7 @@
 # TODO
 - [ ] Do not use python in golden-pico8.sh.
 - [ ] Move font up one pixel.
-- [ ] change file names of golden files to include actual and expected in the same directory.
+- [x] change file names of golden files to include actual and expected in the same directory.
 - [ ] Pico-8 palette colors are different:
 expected white: fff1e8
 actual white: fef0e7

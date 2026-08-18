@@ -2,5 +2,6 @@
 .DS_Store
 /carts/
 /carts
-/tests/golden/actual/
-/tests/golden/expected/
+/tests/golden/*-actual.png
+/tests/golden/*-diff.png
+/tests/golden/*-compare.png

@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
-# Generate Pico-8 golden screenshots into tests/golden/expected/.
+# Generate Pico-8 golden screenshots as tests/golden/{name}-expected.png.
 # Requires a Pico-8 binary. Default: `p8` on PATH (e.g. $HOME/bin/p8).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 GOLDEN="$ROOT/tests/golden"
-EXPECTED="$GOLDEN/expected"
 PICO8_CMD="${PICO8:-p8}"
 
 if ! command -v "$PICO8_CMD" >/dev/null 2>&1 && [[ ! -x "$PICO8_CMD" ]]; then
@@ -22,17 +21,16 @@ if not path:
     sys.exit("cannot find " + cmd)
 print(os.path.realpath(path))' "$PICO8_CMD")"
 
-mkdir -p "$EXPECTED"
-
 echo "using $PICO8_BIN"
 for cart in "$GOLDEN"/*.p8; do
   name="$(basename "$cart" .p8)"
   echo "generating $name"
-  "$PICO8_BIN" -x "$cart" -screenshot_scale 1 -root_path "$EXPECTED" -windowed 1
-  if [[ ! -f "$EXPECTED/${name}.png" ]]; then
-    echo "error: expected $EXPECTED/${name}.png was not written" >&2
+  "$PICO8_BIN" -x "$cart" -screenshot_scale 1 -root_path "$GOLDEN" -windowed 1
+  if [[ ! -f "$GOLDEN/${name}.png" ]]; then
+    echo "error: expected $GOLDEN/${name}.png was not written" >&2
     exit 1
   fi
+  mv "$GOLDEN/${name}.png" "$GOLDEN/${name}-expected.png"
 done
 
-echo "goldens written to $EXPECTED"
+echo "goldens written to $GOLDEN as *-expected.png"
