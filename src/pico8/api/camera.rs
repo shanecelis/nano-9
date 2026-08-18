@@ -45,22 +45,27 @@ impl super::Pico8<'_, '_> {
 mod lua {
     use super::*;
     use crate::pico8::lua::with_pico8;
+    use std::collections::VecDeque;
 
-    use bevy_mod_scripting::bindings::function::{
+    use bevy_mod_scripting::bindings::{
+        ScriptValue,
+        VariadicTuple,
+        function::{
         namespace::{GlobalNamespace, NamespaceBuilder},
-        script_function::FunctionCallContext,
+        script_function::FunctionCallContext}
     };
     pub(crate) fn plugin(app: &mut App) {
         let world = app.world_mut();
 
         NamespaceBuilder::<GlobalNamespace>::new_unregistered(world).register(
-            "_camera",
+            "camera",
             |ctx: FunctionCallContext, x: Option<f32>, y: Option<f32>| {
                 with_pico8(&ctx, move |pico8| {
                     let arg = x.map(|x| Vec2::new(x, y.unwrap_or(0.0)));
                     pico8.camera(arg)
                 })
-                .map(|last_pos| (last_pos.x, last_pos.y))
+                .map(|last_pos| ScriptValue::Tuple(VariadicTuple(VecDeque::from([ScriptValue::from(last_pos.x as f64),
+                                                                                 ScriptValue::from(last_pos.y as f64)]))))
             },
         );
     }

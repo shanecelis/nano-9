@@ -221,14 +221,6 @@ function stop(msg,x,y,color)
     debug_print("STOP NOT IMPLEMENTED")
 end
 
-function camera(x,y)
-    local a, b = _camera(x,y)
-    if type(a) == "table" then
-        return a[1], a[2]
-    end
-    return a, b
-end
-
 function xor(a, b)
     return (a or b) and not (a and b)
 end
