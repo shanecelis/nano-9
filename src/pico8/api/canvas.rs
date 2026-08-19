@@ -243,11 +243,12 @@ impl super::Pico8<'_, '_> {
     pub fn pset(&mut self, pos: UVec2, color: Option<PColor>) -> Result<(), Error> {
         match color.unwrap_or(self.state.draw_state.pen) {
             PColor::Palette(p) => {
+                let p = self.state.pal_map.map_or_mod(p) as u8;
                 let mut gfx = self
                     .gfxs
                     .get_mut(&self.canvas.gfx_handle)
                     .ok_or(Error::NoAsset("gfx".into()))?;
-                if gfx.set(pos.x as usize, pos.y as usize, p as u8) {
+                if gfx.set(pos.x as usize, pos.y as usize, p) {
                     // if let Some(background) = self.canvas.background {
                     //     self.commands
                     //         .entity(background)
