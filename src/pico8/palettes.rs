@@ -47,7 +47,7 @@ impl Palettes {
                 let pal = self.get_pal(palette_index)?;
                 if let Some(image) = images.get(&pal.image) {
                     pal.get_color_in(n, image)
-                        .map(|c| c.into())
+                        .map(Color::Srgba)
                         .map_err(|e| match e {
                             PalError::NoSuchColor(c) => PalError::NoSuchPaletteColor {
                                 color: c,

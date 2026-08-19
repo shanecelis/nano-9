@@ -137,6 +137,23 @@ pub(crate) fn strip_image_from_data(data: &[[u8; 4]]) -> Image {
     image
 }
 
+/// Read a palette texel as sRGB bytes. `Image::get_color_at` follows the
+/// texture format and can return `LinearRgba` for the same PNG.
+fn srgba_at(image: &Image, x: u32, y: u32, index: usize) -> Result<Srgba, PalError> {
+    let bytes = image
+        .pixel_bytes(UVec3::new(x, y, 0))
+        .map_err(|_| PalError::NoSuchColor(index))?;
+    if bytes.len() < 3 {
+        return Err(PalError::NoSuchColor(index));
+    }
+    let a = bytes.get(3).copied().unwrap_or(0xff);
+    let [r, g, b] = match image.texture_descriptor.format {
+        TextureFormat::Bgra8Unorm | TextureFormat::Bgra8UnormSrgb => [bytes[2], bytes[1], bytes[0]],
+        _ => [bytes[0], bytes[1], bytes[2]],
+    };
+    Ok(Srgba::rgba_u8(r, g, b, a))
+}
+
 /// Read palette colors from the image in palette index order, according to `access`.
 pub fn palette_data_from_image(image: &Image, access: &PaletteAccess) -> Vec<[u8; 4]> {
     let size = image.size();
@@ -144,10 +161,9 @@ pub fn palette_data_from_image(image: &Image, access: &PaletteAccess) -> Vec<[u8
     let mut data = Vec::with_capacity(n);
     for index in 0..n {
         if let Some((x, y)) = palette_index_to_xy(access, size.x, size.y, index)
-            && let Ok(color) = image.get_color_at(x, y)
+            && let Ok(color) = srgba_at(image, x, y, index)
         {
-            let srgba: Srgba = color.into();
-            data.push(srgba.to_u8_array());
+            data.push(color.to_u8_array());
         }
     }
     data
@@ -170,10 +186,7 @@ impl Palette {
         let size = image.size();
         let (x, y) = palette_index_to_xy(&self.access, size.x, size.y, index)
             .ok_or(PalError::NoSuchColor(index))?;
-        image
-            .get_color_at(x, y)
-            .map(|c| c.into())
-            .map_err(|_| PalError::NoSuchColor(index))
+        srgba_at(image, x, y, index)
     }
 
     /// Write color at index into pixel_bytes using the loaded palette image.
