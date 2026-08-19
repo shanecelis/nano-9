@@ -9,6 +9,8 @@
 //! the point is to see the diff, not to paper over it:
 //! ```sh
 //! cargo test-golden
+//! cargo test-golden pset
+//! cargo test-golden cls   # cls and cls-white
 //! ```
 //!
 //! Carts are every `tests/golden/*.p8`. Screenshots live next to them as
@@ -338,13 +340,48 @@ fn check_cart(name: &str) -> Result<CartResult, String> {
     })
 }
 
-static GOLDEN_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+/// Positional args after skipping libtest flags. First one is the substring filter.
+fn filter_arg() -> Option<String> {
+    let mut args = std::env::args().skip(1);
+    while let Some(arg) = args.next() {
+        if arg == "--" {
+            continue;
+        }
+        if arg.starts_with('-') {
+            if !arg.contains('=')
+                && matches!(
+                    arg.as_str(),
+                    "--test-threads"
+                        | "--color"
+                        | "--skip"
+                        | "--format"
+                        | "--ensure-time"
+                        | "--report-time"
+                )
+            {
+                let _ = args.next();
+            }
+            continue;
+        }
+        return Some(arg);
+    }
+    None
+}
 
-#[test]
-fn golden_screenshots() {
-    let _guard = GOLDEN_LOCK.lock().unwrap_or_else(|e| e.into_inner());
-    let names = cart_names();
-    assert!(!names.is_empty(), "no tests/golden/*.p8 carts found");
+fn main() {
+    let all = cart_names();
+    assert!(!all.is_empty(), "no tests/golden/*.p8 carts found");
+    let names: Vec<String> = match filter_arg() {
+        Some(filter) => all
+            .into_iter()
+            .filter(|name| name.contains(&filter))
+            .collect(),
+        None => all,
+    };
+    if names.is_empty() {
+        println!("0 golden carts matched");
+        return;
+    }
 
     let mut rows: Vec<(String, String)> = Vec::new();
     let mut failed: Vec<String> = Vec::new();
