@@ -197,12 +197,10 @@ impl super::Pico8<'_, '_> {
             .fill_pat
             .map(|x| x.into())
             .unwrap_or(0);
-        if let Some(pattern) = pattern {
-            if pattern == 0 {
-                self.state.draw_state.fill_pat = None;
-            } else {
-                self.state.draw_state.fill_pat = Some(pattern.into());
-            }
+        // Pico-8: `fillp()` with no argument (or 0) resets to a solid fill.
+        match pattern {
+            None | Some(0) => self.state.draw_state.fill_pat = None,
+            Some(pattern) => self.state.draw_state.fill_pat = Some(pattern.into()),
         }
         last
     }
