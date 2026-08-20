@@ -647,6 +647,7 @@ impl Config {
             resize_constraints,
             decorations,
             resolution,
+            visible: false,
             ..default()
         }
     }

@@ -60,6 +60,8 @@ pub struct Pico8State {
     pub(crate) draw_state: DrawState,
     pub(crate) gfx_material: Option<Handle<GfxMaterial>>,
     pub(crate) gfx_materials: HashMap<u64, Handle<GfxMaterial>>,
+    /// Stem for the next `extcmd("screen")` (`extcmd("set_filename", name)`).
+    pub(crate) screenshot_filename: Option<String>,
 }
 
 // XXX: Dump this after refactor.
@@ -86,6 +88,7 @@ impl From<&pico8::Defaults> for Pico8State {
             },
             gfx_material: None,
             gfx_materials: default(),
+            screenshot_filename: None,
         }
     }
 }

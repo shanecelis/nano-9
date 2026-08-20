@@ -184,6 +184,7 @@ impl Nano9Plugin {
                 // decorations: false,
                 // resolution: resolution.with_scale_factor_override(1.0),
                 resolution,
+                visible: false,
                 ..default()
             }),
             ..default()

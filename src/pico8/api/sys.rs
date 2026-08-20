@@ -1,38 +1,119 @@
 use super::*;
+use super::canvas::N9Canvas;
+use crate::run::RunState;
 use bevy::render::render_resource::TextureFormat;
 use bevy::render::view::screenshot::{Screenshot, ScreenshotCaptured};
+use bevy::window::PrimaryWindow;
+use std::collections::VecDeque;
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
 
 pub(crate) fn plugin(app: &mut App) {
-    app.init_resource::<ExtcmdState>();
+    app.init_resource::<ReadyQueue>()
+        .add_message::<ExtcmdRequest>()
+        .add_observer(queue_startup_window)
+        .add_systems(PostUpdate, pump_ready_queue);
     #[cfg(feature = "scripting")]
     lua::plugin(app);
 }
 
-/// State for Pico-8 `extcmd` (screenshots and shutdown).
-#[derive(Resource, Debug)]
-pub struct ExtcmdState {
-    /// Stem for the next screenshot (`extcmd("set_filename", name)`).
-    pub filename: Option<String>,
-    /// Directory to write screenshots into.
-    pub screenshot_dir: PathBuf,
-    /// A GPU screenshot is in flight.
-    pub capturing: bool,
-    /// Call `extcmd("shutdown")` while a screenshot is capturing.
-    pub shutdown_after: bool,
+/// Sequential `extcmd` work processed one item at a time in the last-frame pump.
+#[derive(Message, Clone, Debug)]
+pub enum ExtcmdRequest {
+    WaitTilReady,
+    RevealWindow(Entity),
+    StartScreenshot(PathBuf),
+    WaitForScreenshot(Arc<Mutex<bool>>),
+    Shutdown,
 }
 
-impl Default for ExtcmdState {
-    fn default() -> Self {
-        Self {
-            filename: None,
-            screenshot_dir: std::env::var_os("NANO9_SCREENSHOT_DIR")
-                .map(PathBuf::from)
-                .unwrap_or_else(|| std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."))),
-            capturing: false,
-            shutdown_after: false,
-        }
+#[derive(Resource, Default)]
+struct ReadyQueue(VecDeque<ExtcmdRequest>);
+
+fn queue_startup_window(
+    add: On<Add, PrimaryWindow>,
+    mut writer: MessageWriter<ExtcmdRequest>,
+    mut commands: Commands,
+) {
+    writer.write(ExtcmdRequest::WaitTilReady);
+    writer.write(ExtcmdRequest::RevealWindow(add.entity));
+    commands.entity(add.observer()).despawn();
+}
+
+fn pump_ready_queue(
+    mut incoming: MessageReader<ExtcmdRequest>,
+    mut queue: ResMut<ReadyQueue>,
+    mut current: Local<Option<ExtcmdRequest>>,
+    run_state: Res<State<RunState>>,
+    mut windows: Query<&mut Window>,
+    mut commands: Commands,
+    canvas: Res<N9Canvas>,
+) {
+    queue.0.extend(incoming.read().cloned());
+    if current.is_none() {
+        *current = queue.0.pop_front();
     }
+    let Some(item) = current.clone() else {
+        return;
+    };
+    let done = match item {
+        ExtcmdRequest::WaitTilReady => matches!(**run_state, RunState::Run | RunState::Pause),
+        ExtcmdRequest::RevealWindow(entity) => match windows.get_mut(entity) {
+            Ok(mut window) => {
+                if window.visible {
+                    true
+                } else {
+                    window.visible = true;
+                    false
+                }
+            }
+            Err(_) => {
+                warn!("RevealWindow({entity}) has no Window; skipping");
+                true
+            }
+        },
+        ExtcmdRequest::StartScreenshot(path) => {
+            if !windows.iter().any(|window| window.visible) {
+                false
+            } else {
+                let written = Arc::new(Mutex::new(false));
+                start_queued_screenshot(&mut commands, path, canvas.size, written.clone());
+                *current = Some(ExtcmdRequest::WaitForScreenshot(written));
+                false
+            }
+        }
+        ExtcmdRequest::WaitForScreenshot(written) => written.lock().map(|g| *g).unwrap_or(false),
+        ExtcmdRequest::Shutdown => {
+            commands.write_message(AppExit::Success);
+            true
+        }
+    };
+    if done {
+        *current = None;
+    }
+}
+
+/// Spawn Bevy's window screenshot and set `written` after the PNG is on disk.
+fn start_queued_screenshot(
+    commands: &mut Commands,
+    path: PathBuf,
+    canvas_size: UVec2,
+    written: Arc<Mutex<bool>>,
+) {
+    commands.spawn(Screenshot::primary_window()).observe(
+        move |captured: On<ScreenshotCaptured>,
+              cameras: Query<&Camera, With<Nano9Camera>>| {
+            if let Err(e) = save_captured_screenshot(&captured.image, cameras, canvas_size, &path)
+            {
+                error!("extcmd(\"screen\") failed: {e}");
+            } else {
+                info!("Screenshot saved to {}", path.display());
+            }
+            if let Ok(mut done) = written.lock() {
+                *done = true;
+            }
+        },
+    );
 }
 
 impl super::Pico8<'_, '_> {
@@ -59,24 +140,28 @@ impl super::Pico8<'_, '_> {
         match cmd {
             "set_filename" => {
                 if let Some(name) = p1 {
-                    self.extcmd.filename = Some(name.to_string());
+                    self.state.screenshot_filename = Some(name.to_string());
                 }
                 Ok(())
             }
             "screen" => {
-                if self.extcmd.capturing || self.extcmd.shutdown_after {
-                    return Ok(());
-                }
                 let _scale = p1.and_then(|s| s.parse::<f32>().ok()).or(p2);
                 let _save_to_folder = p2;
-                self.request_screenshot()
+                let path = self.screenshot_path();
+                if let Some(parent) = path.parent() {
+                    let _ = std::fs::create_dir_all(parent);
+                }
+                self.commands
+                    .write_message(ExtcmdRequest::StartScreenshot(path));
+                Ok(())
             }
             "shutdown" => {
-                if self.extcmd.capturing {
-                    self.extcmd.shutdown_after = true;
-                } else {
-                    self.exit(None);
-                }
+                self.commands.queue(|world: &mut World| {
+                    if let Some(mut next) = world.get_resource_mut::<NextState<RunState>>() {
+                        next.set(RunState::Pause);
+                    }
+                });
+                self.commands.write_message(ExtcmdRequest::Shutdown);
                 Ok(())
             }
             other => {
@@ -88,41 +173,15 @@ impl super::Pico8<'_, '_> {
 
     fn screenshot_path(&self) -> PathBuf {
         let stem = self
-            .extcmd
-            .filename
+            .state
+            .screenshot_filename
             .clone()
             .unwrap_or_else(|| "nano9".to_string());
-        let mut path = self.extcmd.screenshot_dir.clone();
+        let mut path = std::env::var_os("NANO9_SCREENSHOT_DIR")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")));
         path.push(format!("{stem}.png"));
         path
-    }
-
-    fn request_screenshot(&mut self) -> Result<(), Error> {
-        let path = self.screenshot_path();
-        if let Some(parent) = path.parent() {
-            let _ = std::fs::create_dir_all(parent);
-        }
-        let canvas_size = self.canvas.size;
-        self.extcmd.capturing = true;
-        self.commands.spawn(Screenshot::primary_window()).observe(
-            move |captured: On<ScreenshotCaptured>,
-                  cameras: Query<&Camera, With<Nano9Camera>>,
-                  mut commands: Commands,
-                  mut extcmd: ResMut<ExtcmdState>| {
-                if let Err(e) =
-                    save_captured_screenshot(&captured.image, cameras, canvas_size, &path)
-                {
-                    error!("extcmd(\"screen\") failed: {e}");
-                } else {
-                    info!("Screenshot saved to {}", path.display());
-                }
-                extcmd.capturing = false;
-                if extcmd.shutdown_after {
-                    commands.write_message(AppExit::Success);
-                }
-            },
-        );
-        Ok(())
     }
 }
 

@@ -297,6 +297,7 @@ fn check_cart(name: &str) -> Result<CartResult, String> {
     }
 
     let _ = fs::remove_file(&written);
+    let _ = fs::remove_file(&actual);
     run_n9(&cart, &dir)?;
     if written.exists() {
         fs::rename(&written, &actual).map_err(|e| e.to_string())?;
