@@ -18,6 +18,14 @@ bobtail::define! {
 }
 pub use __line as line;
 
+/// Pico-8 `line` includes both endpoints. The `bresenham` crate does not include `end`.
+fn bresenham_inclusive(
+    start: (isize, isize),
+    end: (isize, isize),
+) -> impl Iterator<Item = (isize, isize)> {
+    bresenham::Bresenham::new(start, end).chain(core::iter::once(end))
+}
+
 impl super::Pico8<'_, '_> {
     pub fn line(&mut self, a: IVec2, b: IVec2, color: Option<PColor>) -> Result<Entity, Error> {
         let color = self.get_color(color)?;
@@ -43,7 +51,7 @@ impl super::Pico8<'_, '_> {
         let c = a - min;
         let d = b - min;
         for (x, y) in
-            bresenham::Bresenham::new((c.x as isize, c.y as isize), (d.x as isize, d.y as isize))
+            bresenham_inclusive((c.x as isize, c.y as isize), (d.x as isize, d.y as isize))
         {
             image
                 .pixel_bytes_mut(UVec3::new(x as u32, y as u32, 0))?
@@ -137,10 +145,9 @@ impl super::Pico8<'_, '_> {
                 let mut line_gfx =
                     pico8::Gfx::new(output_bitdepth, size.x as usize, size.y as usize);
 
-                for (x, y) in bresenham::Bresenham::new(
-                    (c.x as isize, c.y as isize),
-                    (d.x as isize, d.y as isize),
-                ) {
+                for (x, y) in
+                    bresenham_inclusive((c.x as isize, c.y as isize), (d.x as isize, d.y as isize))
+                {
                     let tx = m.x.rem_euclid(tex_w as i32) as u32;
                     let ty = m.y.rem_euclid(tex_h as i32) as u32;
                     if let Some(pcolor) = self.sget(UVec2::new(tx, ty), None)?
@@ -184,10 +191,9 @@ impl super::Pico8<'_, '_> {
                 );
                 image.sampler = ImageSampler::nearest();
 
-                for (x, y) in bresenham::Bresenham::new(
-                    (c.x as isize, c.y as isize),
-                    (d.x as isize, d.y as isize),
-                ) {
+                for (x, y) in
+                    bresenham_inclusive((c.x as isize, c.y as isize), (d.x as isize, d.y as isize))
+                {
                     let tx = m.x.rem_euclid(tex_w as i32) as u32;
                     let ty = m.y.rem_euclid(tex_h as i32) as u32;
                     if let Some(pcolor) = self.sget(UVec2::new(tx, ty), None)? {
