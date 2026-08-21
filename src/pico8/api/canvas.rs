@@ -1,8 +1,11 @@
 use super::*;
 use crate::translate::Position;
-use crate::{CanvasRenderTarget, Headless, headless::setup_render_target};
+use crate::{
+    CanvasRenderTarget, Headless,
+    headless::{TEXT2D_LAYOUT_SCALE, setup_render_target},
+};
 use bevy::{
-    camera::{CompositingSpace, RenderTarget, Viewport},
+    camera::{CompositingSpace, ImageRenderTarget, RenderTarget, Viewport},
     window::{PrimaryWindow, WindowResized},
 };
 
@@ -146,9 +149,18 @@ fn spawn_camera(
     }
     if canvas.is_added() {
         let image_target = headless.is_some().then(|| {
-            let handle = setup_render_target(&mut images, canvas.size);
-            commands.insert_resource(CanvasRenderTarget(handle.clone()));
-            handle
+            let physical = (canvas.size.as_vec2() * TEXT2D_LAYOUT_SCALE)
+                .round()
+                .as_uvec2();
+            let handle = setup_render_target(&mut images, physical);
+            commands.insert_resource(CanvasRenderTarget {
+                handle: handle.clone(),
+                scale_factor: TEXT2D_LAYOUT_SCALE,
+            });
+            ImageRenderTarget {
+                handle,
+                scale_factor: TEXT2D_LAYOUT_SCALE,
+            }
         });
         commands
             .spawn((
@@ -174,13 +186,13 @@ fn spawn_camera(
                     Nano9Camera,
                     Position::default(),
                 ));
-                if let Some(handle) = image_target {
+                if let Some(target) = image_target {
                     camera.insert((
                         Camera {
                             order: 0,
                             ..default()
                         },
-                        RenderTarget::Image(handle.into()),
+                        RenderTarget::Image(target),
                     ));
                 }
             });

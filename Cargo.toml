@@ -22,7 +22,7 @@ exclude = [
 default-run = "n9"
 
 [dependencies]
-bevy = { version = "0.19", features = [ "bevy_dev_tools", "asset_processor", "serialize", "audio" ] }
+bevy = { version = "0.19.1", features = [ "bevy_dev_tools", "asset_processor", "serialize", "audio" ] }
 # TODO: Make this a Cargo patch.
 bevy_mod_scripting = { git = "https://github.com/makspll/bevy_mod_scripting.git", branch = "feat/bevy-0.19", features = ["lua54", "core_functions"], default-features = false, optional = true }
 bytemuck = "1.16.3"

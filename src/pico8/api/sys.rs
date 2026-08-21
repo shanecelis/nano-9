@@ -2,6 +2,7 @@ use super::canvas::N9Canvas;
 use super::*;
 use crate::run::RunState;
 use crate::{CanvasRenderTarget, Headless};
+use bevy::camera::{ImageRenderTarget, RenderTarget};
 use bevy::render::render_resource::TextureFormat;
 use bevy::render::view::screenshot::{Screenshot, ScreenshotCaptured};
 use bevy::window::PrimaryWindow;
@@ -85,7 +86,10 @@ fn pump_ready_queue(
         ExtcmdRequest::StartScreenshot(path) => match canvas.as_ref() {
             None => false,
             Some(canvas) => {
-                let image_target = canvas_target.as_ref().map(|t| t.0.clone());
+                let image_target = canvas_target.as_ref().map(|t| ImageRenderTarget {
+                    handle: t.handle.clone(),
+                    scale_factor: t.scale_factor,
+                });
                 if headless.is_some() {
                     if image_target.is_none() {
                         false
@@ -134,10 +138,10 @@ fn start_queued_screenshot(
     path: PathBuf,
     canvas_size: UVec2,
     written: Arc<Mutex<bool>>,
-    image_target: Option<Handle<Image>>,
+    image_target: Option<ImageRenderTarget>,
 ) {
     let screenshot = match image_target {
-        Some(handle) => Screenshot::image(handle),
+        Some(target) => Screenshot(RenderTarget::Image(target)),
         None => Screenshot::primary_window(),
     };
     commands.spawn(screenshot).observe(

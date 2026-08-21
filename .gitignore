@@ -6,3 +6,5 @@
 /tests/golden/*-diff.png
 /tests/golden/*-compare.png
 /tests/golden/*-expected.png
+/tests/golden/*-headless.png
+/tests/golden/*-windowed.png
