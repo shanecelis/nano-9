@@ -372,17 +372,19 @@ impl Plugin for Nano9Plugin {
             app.add_plugins(BMSPlugin.set(globals_plugin).set(lua_scripting_plugin));
         }
         // let resolution = settings.canvas_size.as_vec2() * settings.pixel_scale;
-        app.insert_resource(bevy::winit::WinitSettings {
-            // focused_mode: bevy::winit::UpdateMode::Continuous,
-            focused_mode: bevy::winit::UpdateMode::reactive(Duration::from_millis(16)),
-            unfocused_mode: bevy::winit::UpdateMode::reactive_low_power(Duration::from_millis(
-                // We could run it slower here, but that feels bad actually.
-                // 16 * 4,
-                16,
-            )),
-        })
-        .init_resource::<pico8::Defaults>()
-        .add_plugins(crate::plugin);
+        if app.is_plugin_added::<bevy::winit::WinitPlugin>() {
+            app.insert_resource(bevy::winit::WinitSettings {
+                // focused_mode: bevy::winit::UpdateMode::Continuous,
+                focused_mode: bevy::winit::UpdateMode::reactive(Duration::from_millis(16)),
+                unfocused_mode: bevy::winit::UpdateMode::reactive_low_power(Duration::from_millis(
+                    // We could run it slower here, but that feels bad actually.
+                    // 16 * 4,
+                    16,
+                )),
+            });
+        }
+        app.init_resource::<pico8::Defaults>()
+            .add_plugins(crate::plugin);
 
         #[cfg(feature = "framepace")]
         app.add_plugins(bevy_framepace::FramepacePlugin);

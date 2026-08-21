@@ -1,7 +1,8 @@
 use super::*;
 use crate::translate::Position;
+use crate::{CanvasRenderTarget, Headless, headless::setup_render_target};
 use bevy::{
-    camera::{CompositingSpace, Viewport},
+    camera::{CompositingSpace, RenderTarget, Viewport},
     window::{PrimaryWindow, WindowResized},
 };
 
@@ -123,12 +124,32 @@ struct Dolly;
 fn spawn_camera(
     mut commands: Commands,
     canvas: Option<Res<N9Canvas>>,
+    headless: Option<Res<Headless>>,
+    canvas_target: Option<Res<CanvasRenderTarget>>,
+    mut images: ResMut<Assets<Image>>,
     mut dolly: Query<&mut Transform, With<Dolly>>,
 ) {
     let Some(canvas) = canvas else {
         return;
     };
+    if canvas_target.is_some() {
+        if canvas.is_changed()
+            && let Ok(mut transform) = dolly.single_mut()
+        {
+            *transform = Transform::from_xyz(
+                canvas.size.x as f32 / 2.0,
+                -(canvas.size.y as f32) / 2.0,
+                0.0,
+            );
+        }
+        return;
+    }
     if canvas.is_added() {
+        let image_target = headless.is_some().then(|| {
+            let handle = setup_render_target(&mut images, canvas.size);
+            commands.insert_resource(CanvasRenderTarget(handle.clone()));
+            handle
+        });
         commands
             .spawn((
                 Name::new("dolly"),
@@ -141,7 +162,7 @@ fn spawn_camera(
                 InheritedVisibility::default(),
             ))
             .with_children(|parent| {
-                parent.spawn((
+                let mut camera = parent.spawn((
                     Name::new("camera"),
                     Camera2d,
                     // Keep `Color::srgba_*` bit-exact: shaders write gamma-encoded
@@ -153,6 +174,15 @@ fn spawn_camera(
                     Nano9Camera,
                     Position::default(),
                 ));
+                if let Some(handle) = image_target {
+                    camera.insert((
+                        Camera {
+                            order: 0,
+                            ..default()
+                        },
+                        RenderTarget::Image(handle.into()),
+                    ));
+                }
             });
     } else if canvas.is_changed()
         && let Ok(mut transform) = dolly.single_mut()

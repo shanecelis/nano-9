@@ -4,6 +4,7 @@ pub mod front_matter;
 
 pub mod pico8;
 use crate::{
+    Headless,
     pico8::{Pico8Asset, Pico8Handle, canvas::N9Canvas},
     run::RunState,
 };
@@ -345,8 +346,15 @@ fn apply_config_to_world_and_window(
     commands: &mut Commands,
     primary_windows: &mut Query<&mut Window, With<PrimaryWindow>>,
     defaults: Option<&crate::pico8::Defaults>,
+    headless: bool,
 ) {
     config.was_plugin_build(commands);
+    if headless {
+        if let Some(defaults) = defaults {
+            commands.insert_resource(crate::pico8::Pico8State::from(defaults));
+        }
+        return;
+    }
     let window_spec = config.to_window();
     if let Some(mut window) = primary_windows.iter_mut().next() {
         trace!("Updating window");
@@ -382,6 +390,7 @@ pub fn update_asset(
     mut pico8_handle: Option<ResMut<Pico8Handle>>,
     mut commands: Commands,
     mut primary_windows: Query<&mut Window, With<PrimaryWindow>>,
+    headless: Option<Res<Headless>>,
     #[cfg(feature = "scripting")] _scripts: ResMut<Assets<ScriptAsset>>,
 ) {
     for e in reader.read() {
@@ -425,6 +434,7 @@ pub fn update_asset(
                                 &mut commands,
                                 &mut primary_windows,
                                 defaults.as_ref(),
+                                headless.is_some(),
                             );
                             if let Some(defaults) = defaults {
                                 commands.insert_resource(defaults);
@@ -455,6 +465,7 @@ pub fn update_asset(
                             &mut commands,
                             &mut primary_windows,
                             None,
+                            headless.is_some(),
                         );
                         commands.insert_resource(crate::pico8::DespawnClearablesOnNextClear(true));
                     }

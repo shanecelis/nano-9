@@ -8,6 +8,7 @@ mod entity;
 pub mod error;
 mod ext;
 pub(crate) mod hash;
+pub mod headless;
 #[cfg(feature = "level")]
 pub mod level;
 #[cfg(feature = "minibuffer")]
@@ -23,6 +24,7 @@ pub use color::*;
 #[cfg(feature = "scripting")]
 pub use entity::*;
 pub use ext::*;
+pub use headless::{CanvasRenderTarget, Headless};
 pub use plugin::*;
 #[cfg(feature = "scripting")]
 pub use var::*;

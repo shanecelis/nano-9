@@ -95,14 +95,13 @@ pub fn quick_plugin(app: &mut App) {
         {
             settings.auto_create_primary_context = false;
         }
-        app.add_systems(Update, spawn_inspector_overlay)
-            .add_acts((
-                bevy_minibuffer_inspector::WorldActs::default(),
-                bevy_minibuffer_inspector::StateActs::default().add::<crate::run::RunState>(),
-                bevy_minibuffer_inspector::AssetActs::default()
-                    .add::<bevy::prelude::Image>()
-                    .add::<crate::pico8::Gfx>(),
-            ));
+        app.add_systems(Update, spawn_inspector_overlay).add_acts((
+            bevy_minibuffer_inspector::WorldActs::default(),
+            bevy_minibuffer_inspector::StateActs::default().add::<crate::run::RunState>(),
+            bevy_minibuffer_inspector::AssetActs::default()
+                .add::<bevy::prelude::Image>()
+                .add::<crate::pico8::Gfx>(),
+        ));
     }
 }
 

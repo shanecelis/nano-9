@@ -1,6 +1,7 @@
-use super::*;
 use super::canvas::N9Canvas;
+use super::*;
 use crate::run::RunState;
+use crate::{CanvasRenderTarget, Headless};
 use bevy::render::render_resource::TextureFormat;
 use bevy::render::view::screenshot::{Screenshot, ScreenshotCaptured};
 use bevy::window::PrimaryWindow;
@@ -13,6 +14,9 @@ pub(crate) fn plugin(app: &mut App) {
         .add_message::<ExtcmdRequest>()
         .add_observer(queue_startup_window)
         .add_systems(PostUpdate, pump_ready_queue);
+    if app.world().contains_resource::<Headless>() {
+        app.add_systems(Startup, queue_startup_headless);
+    }
     #[cfg(feature = "scripting")]
     lua::plugin(app);
 }
@@ -40,6 +44,10 @@ fn queue_startup_window(
     commands.entity(add.observer()).despawn();
 }
 
+fn queue_startup_headless(mut writer: MessageWriter<ExtcmdRequest>) {
+    writer.write(ExtcmdRequest::WaitTilReady);
+}
+
 fn pump_ready_queue(
     mut incoming: MessageReader<ExtcmdRequest>,
     mut queue: ResMut<ReadyQueue>,
@@ -47,7 +55,9 @@ fn pump_ready_queue(
     run_state: Res<State<RunState>>,
     mut windows: Query<&mut Window>,
     mut commands: Commands,
-    canvas: Res<N9Canvas>,
+    canvas: Option<Res<N9Canvas>>,
+    headless: Option<Res<Headless>>,
+    canvas_target: Option<Res<CanvasRenderTarget>>,
 ) {
     queue.0.extend(incoming.read().cloned());
     if current.is_none() {
@@ -72,16 +82,41 @@ fn pump_ready_queue(
                 true
             }
         },
-        ExtcmdRequest::StartScreenshot(path) => {
-            if !windows.iter().any(|window| window.visible) {
-                false
-            } else {
-                let written = Arc::new(Mutex::new(false));
-                start_queued_screenshot(&mut commands, path, canvas.size, written.clone());
-                *current = Some(ExtcmdRequest::WaitForScreenshot(written));
-                false
+        ExtcmdRequest::StartScreenshot(path) => match canvas.as_ref() {
+            None => false,
+            Some(canvas) => {
+                let image_target = canvas_target.as_ref().map(|t| t.0.clone());
+                if headless.is_some() {
+                    if image_target.is_none() {
+                        false
+                    } else {
+                        let written = Arc::new(Mutex::new(false));
+                        start_queued_screenshot(
+                            &mut commands,
+                            path,
+                            canvas.size,
+                            written.clone(),
+                            image_target,
+                        );
+                        *current = Some(ExtcmdRequest::WaitForScreenshot(written));
+                        false
+                    }
+                } else if !windows.iter().any(|window| window.visible) {
+                    false
+                } else {
+                    let written = Arc::new(Mutex::new(false));
+                    start_queued_screenshot(
+                        &mut commands,
+                        path,
+                        canvas.size,
+                        written.clone(),
+                        None,
+                    );
+                    *current = Some(ExtcmdRequest::WaitForScreenshot(written));
+                    false
+                }
             }
-        }
+        },
         ExtcmdRequest::WaitForScreenshot(written) => written.lock().map(|g| *g).unwrap_or(false),
         ExtcmdRequest::Shutdown => {
             commands.write_message(AppExit::Success);
@@ -93,18 +128,21 @@ fn pump_ready_queue(
     }
 }
 
-/// Spawn Bevy's window screenshot and set `written` after the PNG is on disk.
+/// Spawn Bevy's screenshot and set `written` after the PNG is on disk.
 fn start_queued_screenshot(
     commands: &mut Commands,
     path: PathBuf,
     canvas_size: UVec2,
     written: Arc<Mutex<bool>>,
+    image_target: Option<Handle<Image>>,
 ) {
-    commands.spawn(Screenshot::primary_window()).observe(
-        move |captured: On<ScreenshotCaptured>,
-              cameras: Query<&Camera, With<Nano9Camera>>| {
-            if let Err(e) = save_captured_screenshot(&captured.image, cameras, canvas_size, &path)
-            {
+    let screenshot = match image_target {
+        Some(handle) => Screenshot::image(handle),
+        None => Screenshot::primary_window(),
+    };
+    commands.spawn(screenshot).observe(
+        move |captured: On<ScreenshotCaptured>, cameras: Query<&Camera, With<Nano9Camera>>| {
+            if let Err(e) = save_captured_screenshot(&captured.image, cameras, canvas_size, &path) {
                 error!("extcmd(\"screen\") failed: {e}");
             } else {
                 info!("Screenshot saved to {}", path.display());

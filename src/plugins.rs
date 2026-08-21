@@ -1,11 +1,13 @@
-use crate::Nano9Plugin;
+use crate::{Nano9Plugin, headless};
 use bevy::{
-    app::{PluginGroup, PluginGroupBuilder},
+    app::{PluginGroup, PluginGroupBuilder, ScheduleRunnerPlugin},
     audio::{AudioPlugin, Volume},
     image::ImagePlugin,
     prelude::*,
     window::ExitCondition,
+    winit::WinitPlugin,
 };
+use std::time::Duration;
 
 /// Nano-9 plugins
 #[derive(Debug, Default)]
@@ -60,12 +62,47 @@ impl PluginGroup for Nano9Plugins {
     }
 }
 
-/// Headless plugin set for tests: no window, no winit event loop.
-/// Use this in tests to avoid "EventLoop must be created on the main thread" on macOS.
+/// GPU headless: no Winit window. Camera renders to a canvas-sized image.
+///
+/// Use with `n9 run --headless`. Drive the loop with [`ScheduleRunnerPlugin`].
 #[derive(Debug, Default)]
 pub struct HeadlessNano9Plugins;
 
 impl PluginGroup for HeadlessNano9Plugins {
+    fn build(self) -> PluginGroupBuilder {
+        PluginGroupBuilder::start::<Self>()
+            .add(headless::plugin)
+            .add_group(
+                DefaultPlugins
+                    .set(ImagePlugin::default_nearest())
+                    .set(AudioPlugin {
+                        global_volume: GlobalVolume {
+                            volume: Volume::Linear(0.4),
+                        },
+                        ..default()
+                    })
+                    .set(WindowPlugin {
+                        primary_window: None,
+                        exit_condition: ExitCondition::DontExit,
+                        ..default()
+                    })
+                    .disable::<WinitPlugin>(),
+            )
+            .add(ScheduleRunnerPlugin::run_loop(Duration::from_secs_f64(
+                1.0 / 60.0,
+            )))
+            .add(Nano9Plugin)
+    }
+}
+
+/// Headless plugin set for tests: no window, no winit event loop, no GPU.
+/// Use this in tests to avoid "EventLoop must be created on the main thread" on macOS.
+#[cfg(test)]
+#[derive(Debug, Default)]
+pub struct TestHeadlessNano9Plugins;
+
+#[cfg(test)]
+impl PluginGroup for TestHeadlessNano9Plugins {
     fn build(self) -> PluginGroupBuilder {
         PluginGroupBuilder::start::<Self>()
             .add_group(MinimalPlugins)

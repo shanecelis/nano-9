@@ -5,7 +5,7 @@
 //! make golden
 //! ```
 //!
-//! Run (GPU window required). Some primitives mismatch; that is expected —
+//! Run (headless GPU). Some primitives mismatch; that is expected —
 //! the point is to see the diff, not to paper over it:
 //! ```sh
 //! cargo test-golden
@@ -201,7 +201,7 @@ fn run_n9(cart: &Path, actual_dir: &Path) -> Result<(), String> {
     fs::create_dir_all(actual_dir).map_err(|e| e.to_string())?;
     let n9 = option_env!("CARGO_BIN_EXE_n9").unwrap_or("n9");
     let mut child = Command::new(n9)
-        .args(["run", cart.to_str().unwrap()])
+        .args(["run", "--headless", cart.to_str().unwrap()])
         .env("NANO9_SCREENSHOT_DIR", actual_dir)
         .stdout(Stdio::null())
         .stderr(Stdio::piped())

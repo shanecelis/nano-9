@@ -53,6 +53,9 @@ enum Command {
         #[arg(long)]
         /// Shared data for Pico-8 carts
         shared_data: Option<SharedData>,
+        #[arg(long)]
+        /// No window; render to a GPU image (for screenshots / CI).
+        headless: bool,
     },
     /// Check a Pico-8 cart or Nano-9 project
     ///
@@ -118,6 +121,8 @@ struct CliDefault {
     shared_data: Option<SharedData>,
     #[arg(long)]
     pause: bool,
+    #[arg(long)]
+    headless: bool,
     path: PathBuf,
 }
 
@@ -129,6 +134,7 @@ fn main() -> io::Result<ExitCode> {
                     path: cli_default.path,
                     shared_data: cli_default.shared_data,
                     pause: cli_default.pause,
+                    headless: cli_default.headless,
                 },
             })
             .map_err(|_| err),
@@ -388,13 +394,14 @@ enum Lookup {
 }
 
 fn run(cli: Cli) -> io::Result<ExitCode> {
-    let (input_path, shared_data, pause, check) = match cli.command {
+    let (input_path, shared_data, pause, check, headless) = match cli.command {
         Command::Run {
             path,
             shared_data,
             pause,
-        } => (path, shared_data, pause, false),
-        Command::Check { path } => (path, None, false, true),
+            headless,
+        } => (path, shared_data, pause, false, headless),
+        Command::Check { path } => (path, None, false, true, false),
         _ => unreachable!(),
     };
 
@@ -522,7 +529,11 @@ fn run(cli: Cli) -> io::Result<ExitCode> {
         }
     };
 
-    app.add_plugins(Nano9Plugins);
+    if headless {
+        app.add_plugins(HeadlessNano9Plugins);
+    } else {
+        app.add_plugins(Nano9Plugins);
+    }
     // We emit info logs now because the `LogPlugin` is now registered and they
     // will be seen. Before adding `Nano9Plugins` no `info!` lines will be
     // shown.
