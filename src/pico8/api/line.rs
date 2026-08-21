@@ -21,6 +21,10 @@ pub use __line as line;
 impl super::Pico8<'_, '_> {
     pub fn line(&mut self, a: IVec2, b: IVec2, color: Option<PColor>) -> Result<Entity, Error> {
         let color = self.get_color(color)?;
+        // Bake the palette color into the image. A white mask + `Sprite.color`
+        // tint is converted to linear, sampled as sRGB, then `linear_to_srgb`'d
+        // and comes out 1/255 dark (`fff1e8` → `fef0e7`).
+        let rgba = Srgba::from(color).to_u8_array();
         let min = a.min(b);
         let delta = b - a;
         let size = UVec2::new(delta.x.unsigned_abs(), delta.y.unsigned_abs()) + UVec2::ONE;
@@ -41,7 +45,9 @@ impl super::Pico8<'_, '_> {
         for (x, y) in
             bresenham::Bresenham::new((c.x as isize, c.y as isize), (d.x as isize, d.y as isize))
         {
-            image.set_color_at(x as u32, y as u32, Color::WHITE)?;
+            image
+                .pixel_bytes_mut(UVec3::new(x as u32, y as u32, 0))?
+                .copy_from_slice(&rgba);
         }
         let handle = self.images.add(image);
         let clearable = Clearable::default();
@@ -51,7 +57,6 @@ impl super::Pico8<'_, '_> {
                 Name::new("line"),
                 Sprite {
                     image: handle,
-                    color,
                     custom_size: Some(size.as_vec2()),
                     ..default()
                 },
