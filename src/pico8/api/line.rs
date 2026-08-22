@@ -1,4 +1,5 @@
 use super::*;
+use super::raster::{bresenham_inclusive, Raster};
 use crate::translate::Position;
 
 pub(crate) fn plugin(app: &mut App) {
@@ -18,14 +19,6 @@ bobtail::define! {
 }
 pub use __line as line;
 
-/// Pico-8 `line` includes both endpoints. The `bresenham` crate does not include `end`.
-fn bresenham_inclusive(
-    start: (isize, isize),
-    end: (isize, isize),
-) -> impl Iterator<Item = (isize, isize)> {
-    bresenham::Bresenham::new(start, end).chain(core::iter::once(end))
-}
-
 impl super::Pico8<'_, '_> {
     pub fn line(&mut self, a: IVec2, b: IVec2, color: Option<PColor>) -> Result<Entity, Error> {
         let color = self.get_color(color)?;
@@ -36,28 +29,11 @@ impl super::Pico8<'_, '_> {
         let min = a.min(b);
         let delta = b - a;
         let size = UVec2::new(delta.x.unsigned_abs(), delta.y.unsigned_abs()) + UVec2::ONE;
-        let mut image = Image::new_fill(
-            Extent3d {
-                width: size.x,
-                height: size.y,
-                depth_or_array_layers: 1,
-            },
-            TextureDimension::D2,
-            &[0u8, 0u8, 0u8, 0u8],
-            TextureFormat::Rgba8UnormSrgb,
-            RenderAssetUsages::RENDER_WORLD | RenderAssetUsages::MAIN_WORLD,
-        );
-        image.sampler = ImageSampler::nearest();
         let c = a - min;
         let d = b - min;
-        for (x, y) in
-            bresenham_inclusive((c.x as isize, c.y as isize), (d.x as isize, d.y as isize))
-        {
-            image
-                .pixel_bytes_mut(UVec3::new(x as u32, y as u32, 0))?
-                .copy_from_slice(&rgba);
-        }
-        let handle = self.images.add(image);
+        let mut raster = Raster::new(size, rgba);
+        raster.line(c.x, c.y, d.x, d.y);
+        let handle = self.images.add(raster.image);
         let clearable = Clearable::default();
         let id = self
             .commands
