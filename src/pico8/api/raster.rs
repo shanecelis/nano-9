@@ -23,7 +23,8 @@ pub(crate) fn bresenham_inclusive(
     start: (isize, isize),
     end: (isize, isize),
 ) -> impl Iterator<Item = (isize, isize)> {
-    bresenham::Bresenham::new(start, end).chain(core::iter::once(end))
+    // bresenham::Bresenham::new(start, end).chain(core::iter::once(end))
+    bresenham::Bresenham::new(start, end)
 }
 
 impl Raster {

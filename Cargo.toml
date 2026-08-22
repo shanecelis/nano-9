@@ -124,6 +124,7 @@ required-features = [ "dev-tools" ]
 [patch.crates-io]
 # bobtail = { path = "../bobtail" }
 bevy_minibuffer = { path = "../bevy_minibuffer" }
+bresenham = { path = "../bresenham-rs" }
 bevy_minibuffer_inspector = { path = "../bevy_minibuffer_inspector" }
 bevy_framepace = { git = "https://github.com/hacknus/bevy_framepace.git", branch = "bevy_0.19" }
 bevy_vox_scene = { git = "https://github.com/oliver-dew/bevy_vox_scene.git", branch = "feature/bevy-0.19" }
