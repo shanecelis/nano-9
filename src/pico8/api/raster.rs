@@ -8,7 +8,7 @@ use bevy::{
     render::render_resource::{Extent3d, TextureDimension, TextureFormat},
 };
 
-pub(crate) struct Raster {
+pub struct Raster {
     pub image: Image,
     pub pen: [u8; 4],
 }
@@ -55,6 +55,24 @@ impl Raster {
         let (lo, hi) = if y0 <= y1 { (y0, y1) } else { (y1, y0) };
         for y in lo..=hi {
             self.plot(x, y);
+        }
+    }
+
+    /// Pico-8 `line` includes both endpoints. The `bresenham` crate does not include `end`.
+    pub fn line(&mut self, x0: i32, y0: i32, x1: i32, y1: i32) {
+        if y0 == y1 {
+            self.hline(x0, x1, y0);
+            return;
+        }
+        if x0 == x1 {
+            self.vline(y0, y1, x0);
+            return;
+        }
+        for (x, y) in
+            bresenham::Bresenham::new((x0 as isize, y0 as isize), (x1 as isize, y1 as isize))
+                .chain(core::iter::once((x1 as isize, y1 as isize)))
+        {
+            self.plot(x as i32, y as i32);
         }
     }
 

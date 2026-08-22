@@ -99,9 +99,14 @@ dev-tools = []
 bevy = "0.19"
 version-sync = "0.9.5"
 png = "0.17.16"
+criterion = "0.5"
 
 [[test]]
 name = "golden"
+harness = false
+
+[[bench]]
+name = "raster"
 harness = false
 
 [[bin]]

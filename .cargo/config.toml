@@ -7,6 +7,7 @@ linker = "arm-none-eabi-ld"
 [alias]
 n9 = "run"
 test-golden = "test --test golden -- --nocapture --test-threads=1"
+bench-raster = "bench --bench raster --"
 
 # [source.crates-io]
 # replace-with = "vendored-sources"

@@ -21,6 +21,7 @@ pub use param::*;
 mod sfx;
 pub use sfx::*;
 mod raster;
+pub use raster::Raster;
 mod circ;
 pub use circ::*;
 mod map;
