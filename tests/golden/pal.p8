@@ -2,7 +2,6 @@ pico-8 cartridge // http://www.pico-8.com
 version 42
 __lua__
 -- golden: pal remap
-f=0
 function _draw()
   cls(0)
   pal(8, 12)
@@ -15,10 +14,7 @@ function _draw()
   pset(12, 80, 8)
   pal()
   pset(20, 80, 8)
-  f+=1
-  if f>=3 then
-    extcmd("set_filename", "pal")
-    extcmd("screen", 1, 1)
-    extcmd("shutdown")
-  end
+  extcmd("set_filename", "pal")
+  extcmd("screen", 1, 1)
+  extcmd("shutdown")
 end

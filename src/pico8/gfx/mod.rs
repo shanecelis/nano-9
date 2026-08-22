@@ -3,6 +3,7 @@ pub mod pal_map_textures;
 pub mod palette_lookup_material;
 mod var_bitdepth;
 use crate::{one_or_map::OneOrMap, pico8::*};
+use bevy::asset::AssetEventSystems;
 use bevy::platform::collections::{HashMap, HashSet};
 use std::{
     collections::VecDeque,
@@ -24,9 +25,9 @@ pub(crate) fn plugin(app: &mut App) {
         .add_systems(
             PostUpdate,
             (
-                compute_image_on_asset_event,
+                compute_image_on_asset_event.after(AssetEventSystems),
                 compute_image_on_gfx_sprite_change.after(compute_image_on_asset_event),
-                check_dirty,
+                check_dirty.after(AssetEventSystems),
             ),
         );
 }
@@ -94,6 +95,7 @@ pub(crate) fn compute_image(
     images: &mut Assets<Image>,
     palettes: &Palettes,
     pairs: &mut GfxImageMap,
+    image_events: &mut MessageWriter<AssetEvent<Image>>,
 ) -> Result<Handle<Image>, Error> {
     let _my_span = info_span!("gfx::compute_image", name = "function").entered();
 
@@ -126,50 +128,50 @@ pub(crate) fn compute_image(
         }
         fallback
     };
-    let image_handle: Option<Handle<Image>> = pairs.get(&gfx_id).and_then(|gfx_image| {
-        gfx_image
-            .get(&hash)
-            .inspect(|handle| {
-                if gfx_changed {
-                    let _my_span =
-                        info_span!("gfx::compute_image", name = "update image").entered();
-                    let gfx = gfxs.get(gfx_id);
-                    // Update existing image.
-                    if let Some((gfx, mut image)) = gfx.zip(images.get_mut(*handle)) {
-                        trace!("updating image for gfx {}", gfx_id);
-                        if let Some(data) = &mut image.data {
-                            if let Err(e) = gfx.try_write_bytes(data, |i, _, bytes| {
-                                gfx_material.pal_map.write_color(&palette_data, i, bytes)
-                            }) {
-                                warn!("Unable to write color to handle {:?}: {e}", &handle);
-                            }
-                        } else {
-                            warn_once!("No data for image {}", gfx_id);
-                        }
+    if let Some(handle) = pairs
+        .get(&gfx_id)
+        .and_then(|gfx_image| gfx_image.get(&hash).cloned())
+    {
+        if gfx_changed {
+            let _my_span = info_span!("gfx::compute_image", name = "update image").entered();
+            let gfx = gfxs.get(gfx_id);
+            // `get_mut_untracked` so we can emit `AssetEvent` this frame. `get_mut`
+            // only queues the event until the next `AssetEventSystems` tick, which
+            // is too late for a same-frame screenshot of `pset`.
+            if let Some((gfx, image)) = gfx.zip(images.get_mut_untracked(&handle)) {
+                trace!("updating image for gfx {}", gfx_id);
+                if let Some(data) = &mut image.data {
+                    if let Err(e) = gfx.try_write_bytes(data, |i, _, bytes| {
+                        gfx_material.pal_map.write_color(&palette_data, i, bytes)
+                    }) {
+                        warn!("Unable to write color to handle {:?}: {e}", &handle);
+                    } else {
+                        image_events.write(AssetEvent::Modified { id: handle.id() });
                     }
+                } else {
+                    warn_once!("No data for image {}", gfx_id);
                 }
-            })
-            .cloned()
-    });
-    let image_handle: Result<Handle<Image>, Error> = image_handle.map(Ok).unwrap_or_else(|| {
-        let _my_span = info_span!("gfx::compute_image", name = "create image").entered();
-        let gfx = gfxs
-            .get(gfx_handle)
-            .ok_or(Error::NoSuch("gfx image".into()))?;
-        trace!("creating image for gfx {}", gfx_id);
-        let image = images.add(gfx.try_to_image(|i, _n, bytes| {
-            gfx_material.pal_map.write_color(&palette_data, i, bytes)
-        })?);
-        // Update or add image to the map.
-        pairs
-            .entry(gfx_id)
-            .and_modify(|gfx_image| {
-                gfx_image.insert(hash, image.clone());
-            })
-            .or_insert_with(|| GfxImage::new(hash, image.clone()));
-        Ok(image)
-    });
-    image_handle
+            }
+        }
+        return Ok(handle);
+    }
+    let _my_span = info_span!("gfx::compute_image", name = "create image").entered();
+    let gfx = gfxs
+        .get(gfx_handle)
+        .ok_or(Error::NoSuch("gfx image".into()))?;
+    trace!("creating image for gfx {}", gfx_id);
+    let image = images.add(gfx.try_to_image(|i, _n, bytes| {
+        gfx_material.pal_map.write_color(&palette_data, i, bytes)
+    })?);
+    image_events.write(AssetEvent::Added { id: image.id() });
+    // Update or add image to the map.
+    pairs
+        .entry(gfx_id)
+        .and_modify(|gfx_image| {
+            gfx_image.insert(hash, image.clone());
+        })
+        .or_insert_with(|| GfxImage::new(hash, image.clone()));
+    Ok(image)
 }
 
 // Informed from Bevy's Sprite::compute_slices_on_asset_event.
@@ -187,6 +189,7 @@ fn compute_image_on_asset_event(
     mut update_images: Local<VecDeque<Handle<Image>>>,
     pico8_handle: Option<Res<Pico8Handle>>,
     pico8_assets: Res<Assets<Pico8Asset>>,
+    mut image_events: MessageWriter<AssetEvent<Image>>,
     // mut update_images: Local<Vec<(Entity, Handle<Image>)>>,
 ) {
     let Some(pico8_handle) = pico8_handle else {
@@ -227,6 +230,7 @@ fn compute_image_on_asset_event(
             &mut images,
             &pico8_asset.palettes,
             &mut pairs,
+            &mut image_events,
         );
         match image_handle {
             Ok(image) => {
@@ -273,6 +277,7 @@ fn compute_image_on_gfx_sprite_change(
     mut pairs: ResMut<GfxImageMap>,
     pico8_handle: Option<Res<Pico8Handle>>,
     pico8_assets: Res<Assets<Pico8Asset>>,
+    mut image_events: MessageWriter<AssetEvent<Image>>,
 ) {
     let Some(pico8_handle) = pico8_handle else {
         return;
@@ -299,6 +304,7 @@ fn compute_image_on_gfx_sprite_change(
             &mut images,
             &pico8_asset.palettes,
             &mut pairs,
+            &mut image_events,
         );
         match image_handle {
             Ok(image) => match sprite {

@@ -1,6 +1,7 @@
 use crate::pico8::{
     self, Error, Gfx, GfxMaterial, Pico8Asset, Pico8Handle, SprHandle, SpriteSheet,
 };
+use bevy::asset::AssetEventSystems;
 use bevy::platform::collections::{HashMap, HashSet};
 use bevy::prelude::*;
 
@@ -43,7 +44,9 @@ pub(crate) fn plugin(app: &mut App) {
             PostUpdate,
             (
                 add_tilemaps,
-                compute_gfx_tilemap_texture_on_asset_event.after(add_tilemaps),
+                compute_gfx_tilemap_texture_on_asset_event
+                    .after(add_tilemaps)
+                    .after(AssetEventSystems),
                 compute_image_on_gfx_tilemap_texture_change
                     .after(compute_gfx_tilemap_texture_on_asset_event),
             ),
@@ -81,6 +84,7 @@ fn compute_gfx_tilemap_texture_on_asset_event(
     mut update_ids: Local<Vec<Entity>>,
     pico8_handle: Option<Res<Pico8Handle>>,
     pico8_assets: Res<Assets<Pico8Asset>>,
+    mut image_events: MessageWriter<AssetEvent<Image>>,
 ) {
     let Some(pico8_handle) = pico8_handle else {
         return;
@@ -119,6 +123,7 @@ fn compute_gfx_tilemap_texture_on_asset_event(
             &mut images,
             &pico8_asset.palettes,
             &mut pairs,
+            &mut image_events,
         );
         match image_handle {
             Ok(image) => {
@@ -177,6 +182,7 @@ fn compute_image_on_gfx_tilemap_texture_change(
     mut pairs: ResMut<pico8::GfxImageMap>,
     pico8_handle: Option<Res<Pico8Handle>>,
     pico8_assets: Res<Assets<Pico8Asset>>,
+    mut image_events: MessageWriter<AssetEvent<Image>>,
 ) {
     let Some(pico8_handle) = pico8_handle else {
         return;
@@ -197,6 +203,7 @@ fn compute_image_on_gfx_tilemap_texture_change(
             &mut images,
             &pico8_asset.palettes,
             &mut pairs,
+            &mut image_events,
         );
         match image_handle {
             Ok(image) => match sprite {

@@ -14,7 +14,7 @@ pub(crate) fn plugin(app: &mut App) {
     app.init_resource::<ReadyQueue>()
         .add_message::<ExtcmdRequest>()
         .add_observer(queue_startup_window)
-        .add_systems(PostUpdate, pump_ready_queue);
+        .add_systems(Last, pump_ready_queue);
     if app.world().contains_resource::<Headless>() {
         app.add_systems(Startup, queue_startup_headless);
     }
@@ -61,37 +61,52 @@ fn pump_ready_queue(
     canvas_target: Option<Res<CanvasRenderTarget>>,
 ) {
     queue.0.extend(incoming.read().cloned());
-    if current.is_none() {
-        *current = queue.0.pop_front();
-    }
-    let Some(item) = current.clone() else {
-        return;
-    };
-    let done = match item {
-        ExtcmdRequest::WaitTilReady => matches!(**run_state, RunState::Run | RunState::Pause),
-        ExtcmdRequest::RevealWindow(entity) => match windows.get_mut(entity) {
-            Ok(mut window) => {
-                if window.visible {
-                    true
-                } else {
-                    window.visible = true;
-                    false
+    loop {
+        if current.is_none() {
+            *current = queue.0.pop_front();
+        }
+        let Some(item) = current.clone() else {
+            return;
+        };
+        let done = match item {
+            ExtcmdRequest::WaitTilReady => matches!(**run_state, RunState::Run | RunState::Pause),
+            ExtcmdRequest::RevealWindow(entity) => match windows.get_mut(entity) {
+                Ok(mut window) => {
+                    if window.visible {
+                        true
+                    } else {
+                        window.visible = true;
+                        false
+                    }
                 }
-            }
-            Err(_) => {
-                warn!("RevealWindow({entity}) has no Window; skipping");
-                true
-            }
-        },
-        ExtcmdRequest::StartScreenshot(path) => match canvas.as_ref() {
-            None => false,
-            Some(canvas) => {
-                let image_target = canvas_target.as_ref().map(|t| ImageRenderTarget {
-                    handle: t.handle.clone(),
-                    scale_factor: t.scale_factor,
-                });
-                if headless.is_some() {
-                    if image_target.is_none() {
+                Err(_) => {
+                    warn!("RevealWindow({entity}) has no Window; skipping");
+                    true
+                }
+            },
+            ExtcmdRequest::StartScreenshot(path) => match canvas.as_ref() {
+                None => false,
+                Some(canvas) => {
+                    let image_target = canvas_target.as_ref().map(|t| ImageRenderTarget {
+                        handle: t.handle.clone(),
+                        scale_factor: t.scale_factor,
+                    });
+                    if headless.is_some() {
+                        if image_target.is_none() {
+                            false
+                        } else {
+                            let written = Arc::new(Mutex::new(false));
+                            start_queued_screenshot(
+                                &mut commands,
+                                path,
+                                canvas.size,
+                                written.clone(),
+                                image_target,
+                            );
+                            *current = Some(ExtcmdRequest::WaitForScreenshot(written));
+                            false
+                        }
+                    } else if !windows.iter().any(|window| window.visible) {
                         false
                     } else {
                         let written = Arc::new(Mutex::new(false));
@@ -100,34 +115,24 @@ fn pump_ready_queue(
                             path,
                             canvas.size,
                             written.clone(),
-                            image_target,
+                            None,
                         );
                         *current = Some(ExtcmdRequest::WaitForScreenshot(written));
                         false
                     }
-                } else if !windows.iter().any(|window| window.visible) {
-                    false
-                } else {
-                    let written = Arc::new(Mutex::new(false));
-                    start_queued_screenshot(
-                        &mut commands,
-                        path,
-                        canvas.size,
-                        written.clone(),
-                        None,
-                    );
-                    *current = Some(ExtcmdRequest::WaitForScreenshot(written));
-                    false
                 }
+            },
+            ExtcmdRequest::WaitForScreenshot(written) => {
+                written.lock().map(|g| *g).unwrap_or(false)
             }
-        },
-        ExtcmdRequest::WaitForScreenshot(written) => written.lock().map(|g| *g).unwrap_or(false),
-        ExtcmdRequest::Shutdown => {
-            commands.write_message(AppExit::Success);
-            true
+            ExtcmdRequest::Shutdown => {
+                commands.write_message(AppExit::Success);
+                true
+            }
+        };
+        if !done {
+            return;
         }
-    };
-    if done {
         *current = None;
     }
 }
@@ -308,11 +313,11 @@ mod lua {
     use super::*;
     use crate::pico8::lua::with_pico8;
 
-    use bevy_mod_scripting::bindings::ScriptValue;
     use bevy_mod_scripting::bindings::function::{
         namespace::{GlobalNamespace, NamespaceBuilder},
         script_function::FunctionCallContext,
     };
+    use bevy_mod_scripting::bindings::ScriptValue;
 
     pub(crate) fn plugin(app: &mut App) {
         let world = app.world_mut();
