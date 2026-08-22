@@ -20,6 +20,7 @@ mod param;
 pub use param::*;
 mod sfx;
 pub use sfx::*;
+mod raster;
 mod circ;
 pub use circ::*;
 mod map;
@@ -54,7 +55,6 @@ use bevy::{
     sprite::Anchor,
     text::TextLayoutInfo,
 };
-use tiny_skia::{self, FillRule, Paint, PathBuilder, Pixmap, Stroke};
 
 use crate::{
     DrawState, FillColor, PColor,

@@ -1,3 +1,4 @@
+use super::raster::Raster;
 use super::*;
 use crate::translate::Position;
 
@@ -27,6 +28,53 @@ bobtail::define! {
 pub use __oval as oval;
 pub use __ovalfill as ovalfill;
 
+fn spawn_oval(
+    pico8: &mut super::Pico8<'_, '_>,
+    name: &'static str,
+    upper_left: Vec2,
+    lower_right: Vec2,
+    color: Color,
+    fill: bool,
+) -> Result<Entity, Error> {
+    let pen = Srgba::from(color).to_u8_array();
+    let mut x0 = upper_left.x.floor() as i32;
+    let mut y0 = upper_left.y.floor() as i32;
+    let mut x1 = lower_right.x.floor() as i32;
+    let mut y1 = lower_right.y.floor() as i32;
+    if x0 > x1 {
+        std::mem::swap(&mut x0, &mut x1);
+    }
+    if y0 > y1 {
+        std::mem::swap(&mut y0, &mut y1);
+    }
+    let size = UVec2::new((x1 - x0 + 1) as u32, (y1 - y0 + 1) as u32);
+    let mut raster = Raster::new(size, pen);
+    // Raster in image-local coordinates so (x0, y0) is the top-left pixel.
+    if fill {
+        raster.ovalfill(0, 0, x1 - x0, y1 - y0);
+    } else {
+        raster.oval(0, 0, x1 - x0, y1 - y0);
+    }
+    let handle = pico8.images.add(raster.image);
+    let clearable = Clearable::default();
+    let id = pico8
+        .commands
+        .spawn((
+            Name::new(name),
+            Sprite {
+                image: handle,
+                custom_size: Some(size.as_vec2()),
+                ..default()
+            },
+            Anchor::TOP_LEFT,
+            Position::from(Vec2::new(x0 as f32, y0 as f32)),
+            clearable,
+        ))
+        .id();
+    pico8.state.draw_state.mark_drawn();
+    Ok(id)
+}
+
 impl super::Pico8<'_, '_> {
     pub fn ovalfill(
         &mut self,
@@ -35,62 +83,7 @@ impl super::Pico8<'_, '_> {
         color: Option<PColor>,
     ) -> Result<Entity, Error> {
         let color = self.get_color(color)?;
-        // let min = a.min(b);
-        let size: UVec2 = ((lower_right.as_ivec2() - upper_left.as_ivec2()) + IVec2::ONE)
-            .try_into()
-            .unwrap();
-        // // let size = UVec2::new((a.x - b.x).abs() + 1,
-        // //                       (a.y - b.y).abs() + 1);
-        // let size = UVec2::new(delta.x.abs() as u32, delta.y.abs() as u32) + UVec2::ONE;
-        // dbg!(a, b, size);
-        let mut pixmap = Pixmap::new(size.x, size.y).expect("pixmap");
-        let oval =
-            tiny_skia::Rect::from_ltrb(0.0, 0.0, size.x as f32, size.y as f32).expect("oval rect");
-        let path = PathBuilder::from_oval(oval).expect("oval path");
-        let mut paint = Paint {
-            anti_alias: false,
-            ..default()
-        };
-        paint.set_color_rgba8(255, 255, 255, 255);
-        pixmap.fill_path(
-            &path,
-            &paint,
-            FillRule::Winding,
-            tiny_skia::Transform::identity(),
-            None,
-        );
-
-        let mut image = Image::new(
-            Extent3d {
-                width: size.x,
-                height: size.y,
-                depth_or_array_layers: 1,
-            },
-            TextureDimension::D2,
-            pixmap.take(),
-            TextureFormat::Rgba8UnormSrgb,
-            RenderAssetUsages::RENDER_WORLD,
-        );
-        image.sampler = ImageSampler::nearest();
-        let handle = self.images.add(image);
-        let clearable = Clearable::default();
-        let id = self
-            .commands
-            .spawn((
-                Name::new("ovalfill"),
-                Sprite {
-                    image: handle,
-                    color,
-                    custom_size: Some(Vec2::new(size.x as f32, size.y as f32)),
-                    ..default()
-                },
-                Anchor::TOP_LEFT,
-                Position::from(upper_left),
-                clearable,
-            ))
-            .id();
-        self.state.draw_state.mark_drawn();
-        Ok(id)
+        spawn_oval(self, "ovalfill", upper_left, lower_right, color, true)
     }
 
     pub fn oval(
@@ -100,62 +93,7 @@ impl super::Pico8<'_, '_> {
         color: Option<PColor>,
     ) -> Result<Entity, Error> {
         let color = self.get_color(color)?;
-        let size: UVec2 = ((lower_right.as_ivec2() - upper_left.as_ivec2()) + IVec2::ONE)
-            .try_into()
-            .unwrap();
-        let mut pixmap = Pixmap::new(size.x, size.y).expect("pixmap");
-        let oval =
-            tiny_skia::Rect::from_ltrb(0.0, 0.0, size.x as f32, size.y as f32).expect("oval rect");
-        let path = PathBuilder::from_oval(oval).expect("oval path");
-        let mut paint = Paint {
-            anti_alias: false,
-            ..default()
-        };
-        paint.set_color_rgba8(255, 255, 255, 255);
-        let stroke = Stroke {
-            width: 0.0,
-            ..default()
-        };
-        pixmap.stroke_path(
-            &path,
-            &paint,
-            &stroke,
-            tiny_skia::Transform::identity(),
-            None,
-        );
-
-        let mut image = Image::new(
-            Extent3d {
-                width: size.x,
-                height: size.y,
-                depth_or_array_layers: 1,
-            },
-            TextureDimension::D2,
-            pixmap.take(),
-            TextureFormat::Rgba8UnormSrgb,
-            RenderAssetUsages::RENDER_WORLD | RenderAssetUsages::MAIN_WORLD,
-        );
-
-        image.sampler = ImageSampler::nearest();
-        let handle = self.images.add(image);
-        let clearable = Clearable::default();
-        let id = self
-            .commands
-            .spawn((
-                Name::new("oval"),
-                Sprite {
-                    image: handle,
-                    color,
-                    custom_size: Some(Vec2::new(size.x as f32, size.y as f32)),
-                    ..default()
-                },
-                Anchor::TOP_LEFT,
-                Position::from(upper_left),
-                clearable,
-            ))
-            .id();
-        self.state.draw_state.mark_drawn();
-        Ok(id)
+        spawn_oval(self, "oval", upper_left, lower_right, color, false)
     }
 }
 

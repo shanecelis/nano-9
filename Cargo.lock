@@ -5380,7 +5380,6 @@ dependencies = [
  "serde_json",
  "thiserror 1.0.69",
  "tiled",
- "tiny-skia",
  "toml 0.8.23",
  "version-sync",
 ]
@@ -7435,7 +7434,6 @@ dependencies = [
  "bytemuck",
  "cfg-if",
  "log",
- "png 0.17.16",
  "tiny-skia-path",
 ]
 

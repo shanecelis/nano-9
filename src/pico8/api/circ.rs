@@ -1,3 +1,4 @@
+use super::raster::Raster;
 use super::*;
 use crate::translate::Position;
 
@@ -27,6 +28,44 @@ bobtail::define! {
 pub use __circ as circ;
 pub use __circfill as circfill;
 
+fn spawn_circ(
+    pico8: &mut super::Pico8<'_, '_>,
+    name: &'static str,
+    pos: Vec2,
+    r: UVec2,
+    color: Color,
+    fill: bool,
+) -> Result<Entity, Error> {
+    let pen = Srgba::from(color).to_u8_array();
+    let radius = r.x as i32;
+    let size = UVec2::splat(r.x.saturating_mul(2).saturating_add(1));
+    let mut raster = Raster::new(size, pen);
+    if fill {
+        raster.circfill(radius, radius, radius);
+    } else {
+        raster.circ(radius, radius, radius);
+    }
+    let handle = pico8.images.add(raster.image);
+    let origin = pos - Vec2::splat(r.x as f32);
+    let clearable = Clearable::default();
+    let id = pico8
+        .commands
+        .spawn((
+            Name::new(name),
+            Sprite {
+                image: handle,
+                custom_size: Some(size.as_vec2()),
+                ..default()
+            },
+            Anchor::TOP_LEFT,
+            Position::from(origin),
+            clearable,
+        ))
+        .id();
+    pico8.state.draw_state.mark_drawn();
+    Ok(id)
+}
+
 impl super::Pico8<'_, '_> {
     pub fn circfill(
         &mut self,
@@ -35,57 +74,7 @@ impl super::Pico8<'_, '_> {
         color: Option<PColor>,
     ) -> Result<Entity, Error> {
         let color = self.get_color(color)?;
-        let r: UVec2 = r.into();
-        let size: UVec2 = r * UVec2::splat(2) + UVec2::ONE;
-        let mut pixmap = Pixmap::new(size.x, size.y).expect("pixmap");
-        let oval =
-            tiny_skia::Rect::from_ltrb(0.0, 0.0, size.x as f32, size.y as f32).expect("circ rect");
-        let path = PathBuilder::from_oval(oval).expect("circ path");
-        let mut paint = Paint {
-            anti_alias: false,
-            ..default()
-        };
-        paint.set_color_rgba8(255, 255, 255, 255);
-        pixmap.fill_path(
-            &path,
-            &paint,
-            FillRule::Winding,
-            tiny_skia::Transform::identity(),
-            None,
-        );
-
-        let mut image = Image::new(
-            Extent3d {
-                width: size.x,
-                height: size.y,
-                depth_or_array_layers: 1,
-            },
-            TextureDimension::D2,
-            pixmap.take(),
-            TextureFormat::Rgba8UnormSrgb,
-            RenderAssetUsages::RENDER_WORLD,
-        );
-        image.sampler = ImageSampler::nearest();
-        let handle = self.images.add(image);
-        let clearable = Clearable::default();
-        let offset = 0.5;
-        let id = self
-            .commands
-            .spawn((
-                Name::new("circfill"),
-                Sprite {
-                    image: handle,
-                    color,
-                    custom_size: Some(Vec2::new(size.x as f32, size.y as f32)),
-                    ..default()
-                },
-                Anchor(Vec2::new(-offset / size.x as f32, offset / size.y as f32)),
-                Position::from(pos),
-                clearable,
-            ))
-            .id();
-        self.state.draw_state.mark_drawn();
-        Ok(id)
+        spawn_circ(self, "circfill", pos, r.into(), color, true)
     }
 
     pub fn circ(
@@ -95,76 +84,21 @@ impl super::Pico8<'_, '_> {
         color: Option<PColor>,
     ) -> Result<Entity, Error> {
         let color = self.get_color(color)?;
-        let r: UVec2 = r.into();
-        let size: UVec2 = r * UVec2::splat(2) + UVec2::ONE;
-        let mut pixmap = Pixmap::new(size.x, size.y).expect("pixmap");
-        let oval =
-            tiny_skia::Rect::from_ltrb(0.0, 0.0, size.x as f32, size.y as f32).expect("circ rect");
-        let path = PathBuilder::from_oval(oval).expect("circ path");
-        let mut paint = Paint {
-            anti_alias: false,
-            ..default()
-        };
-        paint.set_color_rgba8(255, 255, 255, 255);
-        let stroke = Stroke {
-            width: 0.0,
-            ..default()
-        };
-        pixmap.stroke_path(
-            &path,
-            &paint,
-            &stroke,
-            tiny_skia::Transform::identity(),
-            None,
-        );
-
-        let mut image = Image::new(
-            Extent3d {
-                width: size.x,
-                height: size.y,
-                depth_or_array_layers: 1,
-            },
-            TextureDimension::D2,
-            pixmap.take(),
-            TextureFormat::Rgba8UnormSrgb,
-            RenderAssetUsages::RENDER_WORLD | RenderAssetUsages::MAIN_WORLD,
-        );
-        image.sampler = ImageSampler::nearest();
-
-        let offset = 0.5;
-        let handle = self.images.add(image);
-        let clearable = Clearable::default();
-        let id = self
-            .commands
-            .spawn((
-                Name::new("circ"),
-                Sprite {
-                    image: handle,
-                    color,
-                    custom_size: Some(Vec2::new(size.x as f32, size.y as f32)),
-                    ..default()
-                },
-                Anchor(Vec2::new(-offset / size.x as f32, offset / size.y as f32)),
-                Position::from(pos),
-                clearable,
-            ))
-            .id();
-        self.state.draw_state.mark_drawn();
-        Ok(id)
+        spawn_circ(self, "circ", pos, r.into(), color, false)
     }
 }
 
 #[cfg(feature = "scripting")]
 mod lua {
     use super::*;
-    use crate::{DropPolicy, N9Entity, pico8::lua::with_pico8};
+    use crate::{pico8::lua::with_pico8, DropPolicy, N9Entity};
 
     use bevy_mod_scripting::bindings::{
-        InteropError, ScriptValue,
         function::{
             namespace::{GlobalNamespace, NamespaceBuilder},
             script_function::FunctionCallContext,
         },
+        InteropError, ScriptValue,
     };
     pub(crate) fn plugin(app: &mut App) {
         let world = app.world_mut();
