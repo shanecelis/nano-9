@@ -182,6 +182,9 @@ impl Raster {
             xa += bsq * 2;
             wx += 1;
             if xa >= ya {
+                // Midpoint ellipse skips the last step; plot it so the
+                // region switch is 4-connected (Pico-8 corner pixels).
+                plot_oval(data, size, xc, yc, wx, wy, xr, yr, pen);
                 break;
             }
             put(data, size, xc + wx, yc - wy, pen);
@@ -209,6 +212,7 @@ impl Raster {
             ya += asq * 2;
             wy += 1;
             if ya > xa || (ya == 0 && xa == 0) {
+                plot_oval(data, size, xc, yc, wx, wy, xr, yr, pen);
                 break;
             }
             put(data, size, xc + wx, yc - wy, pen);
@@ -248,6 +252,7 @@ impl Raster {
             xa += bsq * 2;
             wx += 1;
             if xa >= ya {
+                fill_oval(data, size, xc, yc, wx, wy, xr, yr, pen);
                 break;
             }
             fill_hline(data, size, xc + wx, xc - wx, yc - wy, pen);
@@ -272,6 +277,7 @@ impl Raster {
             ya += asq * 2;
             wy += 1;
             if ya > xa || (ya == 0 && xa == 0) {
+                fill_oval(data, size, xc, yc, wx, wy, xr, yr, pen);
                 break;
             }
             fill_hline(data, size, xc + wx, xc - wx, yc - wy, pen);
@@ -336,5 +342,90 @@ fn sort_rect(x0: &mut i32, y0: &mut i32, x1: &mut i32, y1: &mut i32) {
     }
     if y0 > y1 {
         std::mem::swap(y0, y1);
+    }
+}
+
+fn in_radii(wx: i32, wy: i32, xr: i32, yr: i32) -> bool {
+    wx >= 0 && wy >= 0 && wx <= xr && wy <= yr
+}
+
+fn plot_oval(
+    data: &mut [u8],
+    size: UVec2,
+    xc: i32,
+    yc: i32,
+    wx: i32,
+    wy: i32,
+    xr: i32,
+    yr: i32,
+    pen: [u8; 4],
+) {
+    if !in_radii(wx, wy, xr, yr) {
+        return;
+    }
+    put(data, size, xc + wx, yc - wy, pen);
+    put(data, size, xc - wx, yc - wy, pen);
+    put(data, size, xc + wx, yc + wy, pen);
+    put(data, size, xc - wx, yc + wy, pen);
+}
+
+fn fill_oval(
+    data: &mut [u8],
+    size: UVec2,
+    xc: i32,
+    yc: i32,
+    wx: i32,
+    wy: i32,
+    xr: i32,
+    yr: i32,
+    pen: [u8; 4],
+) {
+    if !in_radii(wx, wy, xr, yr) {
+        return;
+    }
+    fill_hline(data, size, xc + wx, xc - wx, yc - wy, pen);
+    fill_hline(data, size, xc + wx, xc - wx, yc + wy, pen);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const PEN: [u8; 4] = [255, 0, 77, 255];
+
+    fn pixel(raster: &Raster, x: i32, y: i32) -> [u8; 4] {
+        let size = raster.image.size();
+        let i = offset(size, x, y);
+        let data = raster.image.data.as_ref().unwrap();
+        data[i..i + 4].try_into().unwrap()
+    }
+
+    #[test]
+    fn wide_oval_plots_region_switch_corners() {
+        // oval(48, 32, 70, 44) in local coords: 23×13, radii 11×6.
+        let mut raster = Raster::new(UVec2::new(23, 13), PEN);
+        raster.oval(0, 0, 22, 12);
+        let (xc, yc) = (11, 6);
+        for (dx, dy) in [(10, 3), (10, -3), (-10, 3), (-10, -3)] {
+            assert_eq!(
+                pixel(&raster, xc + dx, yc + dy),
+                PEN,
+                "missing outline corner ({dx}, {dy})"
+            );
+        }
+    }
+
+    #[test]
+    fn wide_ovalfill_plots_region_switch_corners() {
+        let mut raster = Raster::new(UVec2::new(23, 13), PEN);
+        raster.ovalfill(0, 0, 22, 12);
+        let (xc, yc) = (11, 6);
+        for (dx, dy) in [(10, 3), (10, -3), (-10, 3), (-10, -3)] {
+            assert_eq!(
+                pixel(&raster, xc + dx, yc + dy),
+                PEN,
+                "missing fill corner ({dx}, {dy})"
+            );
+        }
     }
 }

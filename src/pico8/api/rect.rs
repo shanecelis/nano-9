@@ -30,6 +30,11 @@ pub use __fillp as fillp;
 pub use __rect as rect;
 pub use __rectfill as rectfill;
 
+/// Pico-8 `rect`/`rectfill` take any two opposing corners.
+fn sort_corners(a: Vec2, b: Vec2) -> (Vec2, Vec2) {
+    (a.min(b), a.max(b))
+}
+
 impl super::Pico8<'_, '_> {
     pub fn rectfill(
         &mut self,
@@ -37,6 +42,7 @@ impl super::Pico8<'_, '_> {
         lower_right: Vec2,
         color: Option<FillColor>,
     ) -> Result<Entity, Error> {
+        let (upper_left, lower_right) = sort_corners(upper_left, lower_right);
         let size = (lower_right - upper_left) + Vec2::ONE;
         let color = color.unwrap_or_else(|| self.state.draw_state.pen.into());
         let mut clearable = Clearable::default();
@@ -162,6 +168,7 @@ impl super::Pico8<'_, '_> {
         lower_right: Vec2,
         color: Option<PColor>,
     ) -> Result<Entity, Error> {
+        let (upper_left, lower_right) = sort_corners(upper_left, lower_right);
         let c = self.get_color(color)?;
         let size = (lower_right - upper_left) + Vec2::ONE;
         let clearable = Clearable::default();
