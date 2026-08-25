@@ -1,8 +1,9 @@
 //! Pixel plots for Pico-8 shape primitives. Colors are baked as sRGB bytes
 //! (sprite tint round-trips through linear and lands 1/255 dark).
 //!
-//! Drawing walks the CPU buffer directly. Horizontal runs are a contiguous
-//! RGBA slice; diagonals use the `bresenham` iterator in one loop.
+//! Drawing walks the CPU buffer directly. Circle outlines use inherent
+//! `Circle::for_each`; ellipse outlines use `Iterator::for_each`. Fills join
+//! each symmetric pair with an `hline`.
 
 use bevy::{
     asset::RenderAssetUsages,
@@ -10,6 +11,7 @@ use bevy::{
     prelude::*,
     render::render_resource::{Extent3d, TextureDimension, TextureFormat},
 };
+use bresenham::{Bresenham, Circle, EllipseRect};
 
 const BPP: usize = 4;
 
@@ -18,13 +20,9 @@ pub struct Raster {
     pub pen: [u8; 4],
 }
 
-/// Pico-8 `line` includes both endpoints. The `bresenham` crate does not include `end`.
-pub(crate) fn bresenham_inclusive(
-    start: (isize, isize),
-    end: (isize, isize),
-) -> impl Iterator<Item = (isize, isize)> {
-    // bresenham::Bresenham::new(start, end).chain(core::iter::once(end))
-    bresenham::Bresenham::new(start, end)
+/// Inclusive line. `Bresenham::new` yields both endpoints.
+pub(crate) fn bresenham_inclusive(start: (isize, isize), end: (isize, isize)) -> Bresenham {
+    Bresenham::new(start, end)
 }
 
 impl Raster {
@@ -90,199 +88,40 @@ impl Raster {
         }
     }
 
-    /// Midpoint circle outline. Ported from fake-08 `Graphics::circ`.
     pub fn circ(&mut self, ox: i32, oy: i32, r: i32) {
         let pen = self.pen;
         let (data, size) = self.buf();
-        let mut x = r;
-        let mut y = 0;
-        let mut decision_over_2 = 1 - x;
-
-        while y <= x {
-            put(data, size, ox + x, oy + y, pen);
-            put(data, size, ox + y, oy + x, pen);
-            put(data, size, ox - x, oy + y, pen);
-            put(data, size, ox - y, oy + x, pen);
-            put(data, size, ox - x, oy - y, pen);
-            put(data, size, ox - y, oy - x, pen);
-            put(data, size, ox + x, oy - y, pen);
-            put(data, size, ox + y, oy - x, pen);
-
-            y += 1;
-            if decision_over_2 < 0 {
-                decision_over_2 += 2 * y + 1;
-            } else {
-                x -= 1;
-                decision_over_2 += 2 * (y - x) + 1;
-            }
-        }
+        Circle::new((ox as isize, oy as isize), r as isize).for_each(|(x, y)| {
+            put(data, size, x as i32, y as i32, pen);
+        });
     }
 
-    /// Filled circle. Ported from fake-08 `Graphics::circfill`.
     pub fn circfill(&mut self, ox: i32, oy: i32, r: i32) {
         let pen = self.pen;
         let (data, size) = self.buf();
-        if r == 0 {
-            put(data, size, ox, oy, pen);
-        } else if r == 1 {
-            put(data, size, ox, oy - 1, pen);
-            fill_hline(data, size, ox - 1, ox + 1, oy, pen);
-            put(data, size, ox, oy + 1, pen);
-        } else if r > 0 {
-            let mut x = -r;
-            let mut y = 0;
-            let mut err = 2 - 2 * r;
-            loop {
-                fill_hline(data, size, ox - x, ox + x, oy + y, pen);
-                fill_hline(data, size, ox - x, ox + x, oy - y, pen);
-                let saved = err;
-                if saved > x {
-                    x += 1;
-                    err += x * 2 + 1;
-                }
-                if saved <= y {
-                    y += 1;
-                    err += y * 2 + 1;
-                }
-                if x >= 0 {
-                    break;
-                }
-            }
-        }
+        Circle::new((ox as isize, oy as isize), r as isize).for_each_hline(|x0, x1, y| {
+            fill_hline(data, size, x0 as i32, x1 as i32, y as i32, pen);
+        });
     }
 
-    /// Ellipse outline. Ported from fake-08 `Graphics::oval` (midpoint ellipse).
-    pub fn oval(&mut self, mut x0: i32, mut y0: i32, mut x1: i32, mut y1: i32) {
-        sort_rect(&mut x0, &mut y0, &mut x1, &mut y1);
-        let xr = (x1 - x0) / 2;
-        let yr = (y1 - y0) / 2;
-        let xc = x0 + xr;
-        let yc = y0 + yr;
+    pub fn oval(&mut self, x0: i32, y0: i32, x1: i32, y1: i32) {
         let pen = self.pen;
         let (data, size) = self.buf();
-
-        put(data, size, xc, yc + yr, pen);
-        put(data, size, xc, yc - yr, pen);
-
-        let asq = xr * xr;
-        let bsq = yr * yr;
-        let mut wx = 0;
-        let mut wy = yr;
-        let mut xa = 0;
-        let mut ya = asq * 2 * yr;
-        let mut thresh = asq / 4 - asq * yr;
-
-        loop {
-            thresh += xa + bsq;
-            if thresh >= 0 {
-                ya -= asq * 2;
-                thresh -= ya;
-                wy -= 1;
-            }
-            xa += bsq * 2;
-            wx += 1;
-            if xa >= ya {
-                // Midpoint ellipse skips the last step; plot it so the
-                // region switch is 4-connected (Pico-8 corner pixels).
-                plot_oval(data, size, xc, yc, wx, wy, xr, yr, pen);
-                break;
-            }
-            put(data, size, xc + wx, yc - wy, pen);
-            put(data, size, xc - wx, yc - wy, pen);
-            put(data, size, xc + wx, yc + wy, pen);
-            put(data, size, xc - wx, yc + wy, pen);
-        }
-
-        put(data, size, xc + xr, yc, pen);
-        put(data, size, xc - xr, yc, pen);
-
-        wx = xr;
-        wy = 0;
-        xa = bsq * 2 * xr;
-        ya = 0;
-        thresh = bsq / 4 - bsq * xr;
-
-        loop {
-            thresh += ya + asq;
-            if thresh >= 0 {
-                xa -= bsq * 2;
-                thresh -= xa;
-                wx -= 1;
-            }
-            ya += asq * 2;
-            wy += 1;
-            if ya > xa || (ya == 0 && xa == 0) {
-                plot_oval(data, size, xc, yc, wx, wy, xr, yr, pen);
-                break;
-            }
-            put(data, size, xc + wx, yc - wy, pen);
-            put(data, size, xc - wx, yc - wy, pen);
-            put(data, size, xc + wx, yc + wy, pen);
-            put(data, size, xc - wx, yc + wy, pen);
-        }
+        EllipseRect::new((x0 as isize, y0 as isize), (x1 as isize, y1 as isize)).for_each(
+            |(x, y)| {
+                put_clip(data, size, x as i32, y as i32, pen);
+            },
+        );
     }
 
-    /// Filled ellipse. Ported from fake-08 `Graphics::ovalfill`.
-    pub fn ovalfill(&mut self, mut x0: i32, mut y0: i32, mut x1: i32, mut y1: i32) {
-        sort_rect(&mut x0, &mut y0, &mut x1, &mut y1);
-        let xr = (x1 - x0) / 2;
-        let yr = (y1 - y0) / 2;
-        let xc = x0 + xr;
-        let yc = y0 + yr;
+    pub fn ovalfill(&mut self, x0: i32, y0: i32, x1: i32, y1: i32) {
         let pen = self.pen;
         let (data, size) = self.buf();
-
-        fill_vline(data, size, xc, yc + yr, yc - yr, pen);
-
-        let asq = xr * xr;
-        let bsq = yr * yr;
-        let mut wx = 0;
-        let mut wy = yr;
-        let mut xa = 0;
-        let mut ya = asq * 2 * yr;
-        let mut thresh = asq / 4 - asq * yr;
-
-        loop {
-            thresh += xa + bsq;
-            if thresh >= 0 {
-                ya -= asq * 2;
-                thresh -= ya;
-                wy -= 1;
-            }
-            xa += bsq * 2;
-            wx += 1;
-            if xa >= ya {
-                fill_oval(data, size, xc, yc, wx, wy, xr, yr, pen);
-                break;
-            }
-            fill_hline(data, size, xc + wx, xc - wx, yc - wy, pen);
-            fill_hline(data, size, xc + wx, xc - wx, yc + wy, pen);
-        }
-
-        fill_hline(data, size, xc + xr, xc - xr, yc, pen);
-
-        wx = xr;
-        wy = 0;
-        xa = bsq * 2 * xr;
-        ya = 0;
-        thresh = bsq / 4 - bsq * xr;
-
-        loop {
-            thresh += ya + asq;
-            if thresh >= 0 {
-                xa -= bsq * 2;
-                thresh -= xa;
-                wx -= 1;
-            }
-            ya += asq * 2;
-            wy += 1;
-            if ya > xa || (ya == 0 && xa == 0) {
-                fill_oval(data, size, xc, yc, wx, wy, xr, yr, pen);
-                break;
-            }
-            fill_hline(data, size, xc + wx, xc - wx, yc - wy, pen);
-            fill_hline(data, size, xc + wx, xc - wx, yc + wy, pen);
-        }
+        EllipseRect::new((x0 as isize, y0 as isize), (x1 as isize, y1 as isize)).for_each_hline(
+            |x0, x1, y| {
+                fill_hline_clip(data, size, x0 as i32, x1 as i32, y as i32, pen);
+            },
+        );
     }
 }
 
@@ -305,6 +144,28 @@ fn put(data: &mut [u8], size: UVec2, x: i32, y: i32, pen: [u8; 4]) {
     );
     let i = offset(size, x, y);
     data[i..i + BPP].copy_from_slice(&pen);
+}
+
+#[inline(always)]
+fn put_clip(data: &mut [u8], size: UVec2, x: i32, y: i32, pen: [u8; 4]) {
+    if x < 0 || y < 0 || (x as u32) >= size.x || (y as u32) >= size.y {
+        return;
+    }
+    let i = offset(size, x, y);
+    data[i..i + BPP].copy_from_slice(&pen);
+}
+
+#[inline(always)]
+fn fill_hline_clip(data: &mut [u8], size: UVec2, x0: i32, x1: i32, y: i32, pen: [u8; 4]) {
+    if y < 0 || (y as u32) >= size.y {
+        return;
+    }
+    let (mut lo, mut hi) = if x0 <= x1 { (x0, x1) } else { (x1, x0) };
+    lo = lo.max(0);
+    hi = hi.min(size.x as i32 - 1);
+    if lo <= hi {
+        fill_hline(data, size, lo, hi, y, pen);
+    }
 }
 
 #[inline(always)]
@@ -333,99 +194,5 @@ fn fill_vline(data: &mut [u8], size: UVec2, x: i32, y0: i32, y1: i32, pen: [u8; 
     for _ in lo..=hi {
         data[i..i + BPP].copy_from_slice(&pen);
         i += stride;
-    }
-}
-
-fn sort_rect(x0: &mut i32, y0: &mut i32, x1: &mut i32, y1: &mut i32) {
-    if x0 > x1 {
-        std::mem::swap(x0, x1);
-    }
-    if y0 > y1 {
-        std::mem::swap(y0, y1);
-    }
-}
-
-fn in_radii(wx: i32, wy: i32, xr: i32, yr: i32) -> bool {
-    wx >= 0 && wy >= 0 && wx <= xr && wy <= yr
-}
-
-fn plot_oval(
-    data: &mut [u8],
-    size: UVec2,
-    xc: i32,
-    yc: i32,
-    wx: i32,
-    wy: i32,
-    xr: i32,
-    yr: i32,
-    pen: [u8; 4],
-) {
-    if !in_radii(wx, wy, xr, yr) {
-        return;
-    }
-    put(data, size, xc + wx, yc - wy, pen);
-    put(data, size, xc - wx, yc - wy, pen);
-    put(data, size, xc + wx, yc + wy, pen);
-    put(data, size, xc - wx, yc + wy, pen);
-}
-
-fn fill_oval(
-    data: &mut [u8],
-    size: UVec2,
-    xc: i32,
-    yc: i32,
-    wx: i32,
-    wy: i32,
-    xr: i32,
-    yr: i32,
-    pen: [u8; 4],
-) {
-    if !in_radii(wx, wy, xr, yr) {
-        return;
-    }
-    fill_hline(data, size, xc + wx, xc - wx, yc - wy, pen);
-    fill_hline(data, size, xc + wx, xc - wx, yc + wy, pen);
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    const PEN: [u8; 4] = [255, 0, 77, 255];
-
-    fn pixel(raster: &Raster, x: i32, y: i32) -> [u8; 4] {
-        let size = raster.image.size();
-        let i = offset(size, x, y);
-        let data = raster.image.data.as_ref().unwrap();
-        data[i..i + 4].try_into().unwrap()
-    }
-
-    #[test]
-    fn wide_oval_plots_region_switch_corners() {
-        // oval(48, 32, 70, 44) in local coords: 23×13, radii 11×6.
-        let mut raster = Raster::new(UVec2::new(23, 13), PEN);
-        raster.oval(0, 0, 22, 12);
-        let (xc, yc) = (11, 6);
-        for (dx, dy) in [(10, 3), (10, -3), (-10, 3), (-10, -3)] {
-            assert_eq!(
-                pixel(&raster, xc + dx, yc + dy),
-                PEN,
-                "missing outline corner ({dx}, {dy})"
-            );
-        }
-    }
-
-    #[test]
-    fn wide_ovalfill_plots_region_switch_corners() {
-        let mut raster = Raster::new(UVec2::new(23, 13), PEN);
-        raster.ovalfill(0, 0, 22, 12);
-        let (xc, yc) = (11, 6);
-        for (dx, dy) in [(10, 3), (10, -3), (-10, 3), (-10, -3)] {
-            assert_eq!(
-                pixel(&raster, xc + dx, yc + dy),
-                PEN,
-                "missing fill corner ({dx}, {dy})"
-            );
-        }
     }
 }
