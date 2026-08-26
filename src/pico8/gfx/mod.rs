@@ -83,7 +83,32 @@ fn check_dirty(
     }
 }
 
-/// Computes the RGBA image for a Gfx sprite using the given palette and PalMap.
+fn write_gfx_pixel(
+    gfx: &Gfx,
+    gfx_material: &GfxMaterial,
+    palette_data: &[[u8; 4]],
+    color_index: u8,
+    pixel_index: usize,
+    bytes: &mut [u8],
+) -> Result<(), Error> {
+    if let Some(occupancy) = gfx.occupancy.as_ref() {
+        if pixel_index >= occupancy.len() || !occupancy[pixel_index] {
+            bytes.fill(0);
+            return Ok(());
+        }
+        let pi = gfx_material.pal_map.map_or_mod(color_index as usize);
+        let color = palette_data
+            .get(pi)
+            .ok_or(Error::NoSuch("palette color".into()))?;
+        bytes[0..=3].copy_from_slice(color);
+        bytes[3] = 0xff;
+        return Ok(());
+    }
+    gfx_material
+        .pal_map
+        .write_color(palette_data, color_index, bytes)
+}
+
 /// Uses the CPU path (Gfx::try_to_image + PalMap::write_color). A GPU path is available
 /// via Gfx::to_index_image(), palette.image(), pal_map_textures::pal_map_to_images(), and
 /// GfxPaletteLookupMaterial with a camera or render-graph node that draws a fullscreen quad.
@@ -141,8 +166,15 @@ pub(crate) fn compute_image(
             if let Some((gfx, image)) = gfx.zip(images.get_mut_untracked(&handle)) {
                 trace!("updating image for gfx {}", gfx_id);
                 if let Some(data) = &mut image.data {
-                    if let Err(e) = gfx.try_write_bytes(data, |i, _, bytes| {
-                        gfx_material.pal_map.write_color(&palette_data, i, bytes)
+                    if let Err(e) = gfx.try_write_bytes(data, |i, pixel_index, bytes| {
+                        write_gfx_pixel(
+                            gfx,
+                            gfx_material,
+                            &palette_data,
+                            i,
+                            pixel_index,
+                            bytes,
+                        )
                     }) {
                         warn!("Unable to write color to handle {:?}: {e}", &handle);
                     } else {
@@ -160,10 +192,9 @@ pub(crate) fn compute_image(
         .get(gfx_handle)
         .ok_or(Error::NoSuch("gfx image".into()))?;
     trace!("creating image for gfx {}", gfx_id);
-    let image =
-        images.add(gfx.try_to_image(|i, _n, bytes| {
-            gfx_material.pal_map.write_color(&palette_data, i, bytes)
-        })?);
+    let image = images.add(gfx.try_to_image(|i, pixel_index, bytes| {
+        write_gfx_pixel(gfx, gfx_material, &palette_data, i, pixel_index, bytes)
+    })?);
     image_events.write(AssetEvent::Added { id: image.id() });
     // Update or add image to the map.
     pairs

@@ -4,7 +4,11 @@ use bevy::ecs::system::SystemParam;
 
 use crate::{
     pico8::{
-        self, Gfx, api::canvas::N9Canvas, audio::SfxChannels, keyboard::KeyInput, mouse::MouseInput,
+        self, Gfx,
+        api::canvas::{N9Canvas, PixelCanvas},
+        audio::SfxChannels,
+        keyboard::KeyInput,
+        mouse::MouseInput,
     },
     translate::Position,
 };
@@ -37,6 +41,13 @@ pub struct Pico8<'w, 's> {
     pub(crate) defaults: Res<'w, pico8::Defaults>,
     pub(crate) clear_cache: ResMut<'w, ClearCache>,
     pub(crate) gfx_sprites: Query<'w, 's, &'static mut GfxSprite>,
+    pub(crate) pixel_canvases: Query<
+        'w,
+        's,
+        (Entity, &'static mut Clearable, &'static mut Visibility),
+        With<PixelCanvas>,
+    >,
+    pub(crate) n9_cameras: Query<'w, 's, Entity, With<Nano9Camera>>,
     pub(crate) gfx_materials: ResMut<'w, Assets<GfxMaterial>>,
     pub(crate) sprite_sheets: ResMut<'w, Assets<SpriteSheet>>,
     pub(crate) p8_maps: ResMut<'w, Assets<P8Map>>,

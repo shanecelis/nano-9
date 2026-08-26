@@ -11,6 +11,10 @@ use bitvec::{prelude::*, view::BitView};
 pub struct Gfx<T: TypePath + Send + Sync + BitStore = u8> {
     #[reflect(ignore)]
     pub data: BitVec<T, Lsb0>,
+    /// Per-pixel occupancy for screen canvases. Unset pixels stay transparent;
+    /// occupied pixels are opaque even when the index is 0. `None` for sprite sheets.
+    #[reflect(ignore)]
+    pub occupancy: Option<BitVec<T, Lsb0>>,
     pub bitdepth: usize,
     pub width: usize,
     pub height: usize,
@@ -83,6 +87,7 @@ impl Gfx<u8> {
             }
             Ok(Gfx {
                 bitdepth: dest_bit_depth,
+                occupancy: None,
                 data,
                 width,
                 height,
@@ -100,6 +105,18 @@ impl<T: TypePath + Send + Sync + Default + BitView<Store = T> + BitStore + Copy>
     pub fn new(bitdepth: usize, width: usize, height: usize) -> Self {
         Gfx {
             data: BitVec::<T, Lsb0>::repeat(false, width * height * bitdepth),
+            occupancy: None,
+            bitdepth,
+            width,
+            height,
+        }
+    }
+
+    /// Screen pixel canvas: occupancy so unset pixels are transparent and `pset(0)` is opaque.
+    pub fn new_pixel_canvas(bitdepth: usize, width: usize, height: usize) -> Self {
+        Gfx {
+            data: BitVec::<T, Lsb0>::repeat(false, width * height * bitdepth),
+            occupancy: Some(BitVec::<T, Lsb0>::repeat(false, width * height)),
             bitdepth,
             width,
             height,
@@ -109,12 +126,21 @@ impl<T: TypePath + Send + Sync + Default + BitView<Store = T> + BitStore + Copy>
     pub fn from_vec(bitdepth: usize, width: usize, height: usize, vec: Vec<T>) -> Self {
         let gfx = Gfx {
             data: BitVec::<T, Lsb0>::from_vec(vec),
+            occupancy: None,
             bitdepth,
             width,
             height,
         };
         assert!(width * height * bitdepth <= gfx.data.len());
         gfx
+    }
+
+    /// Zero indices and occupancy (pixel canvases).
+    pub fn clear_canvas(&mut self) {
+        self.data.fill(false);
+        if let Some(occupancy) = &mut self.occupancy {
+            occupancy.fill(false);
+        }
     }
 
     /// Get a color index.
@@ -134,13 +160,21 @@ impl<T: TypePath + Send + Sync + Default + BitView<Store = T> + BitStore + Copy>
         let n = self.bitdepth;
         let bits = color_index.view_bits::<Lsb0>();
         let start = x * n + y * n * self.width;
-        self.data
+        let set = self
+            .data
             .get_mut(start..start + n)
             .map(|slice| {
                 slice.copy_from_bitslice(&bits[0..n]);
                 true
             })
-            .unwrap_or(false)
+            .unwrap_or(false);
+        if set && let Some(occupancy) = &mut self.occupancy {
+            let i = x + y * self.width;
+            if i < occupancy.len() {
+                occupancy.set(i, true);
+            }
+        }
+        set
     }
 
     /// Write pixel data.

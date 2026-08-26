@@ -9,17 +9,26 @@ use bevy::{
     window::{PrimaryWindow, WindowResized},
 };
 
-#[derive(Debug, Clone, Resource, Default, Reflect)]
+#[derive(Debug, Clone, Resource, Reflect)]
 pub struct N9Canvas {
     pub size: UVec2,
-    pub background: Option<Entity>,
-    pub handle: Handle<Image>,
-    pub gfx_handle: Handle<Gfx>,
     pub bit_depth: u8,
 }
 
+impl Default for N9Canvas {
+    fn default() -> Self {
+        Self {
+            size: UVec2::splat(128),
+            bit_depth: 4,
+        }
+    }
+}
+
+/// Screen-sized Gfx written by `pset`. Spawned on demand as a hashless Clearable.
 #[derive(Component, Debug, Reflect)]
-pub struct Background;
+pub struct PixelCanvas;
+
+const MAX_PIXEL_CANVASES: usize = 8;
 
 #[derive(Component, Debug, Reflect)]
 pub struct OneColorBackground;
@@ -48,18 +57,13 @@ pub(crate) fn plugin(app: &mut App) {
     lua::plugin(app);
 }
 
-#[allow(clippy::too_many_arguments)]
 pub fn setup_canvas(
-    canvas: Option<ResMut<N9Canvas>>,
+    canvas: Option<Res<N9Canvas>>,
     mut assets: ResMut<Assets<Image>>,
-    mut gfxs: ResMut<Assets<Gfx>>,
     camera: Single<Entity, With<Nano9Camera>>,
-    mut state: ResMut<Pico8State>,
-    defaults: Res<Defaults>,
-    mut gfx_materials: ResMut<Assets<GfxMaterial>>,
     mut commands: Commands,
 ) {
-    let Some(mut canvas) = canvas else {
+    let Some(canvas) = canvas else {
         return;
     };
     if canvas.is_added() {
@@ -91,31 +95,6 @@ pub fn setup_canvas(
                 OneColorBackground,
             ))
             .insert(ChildOf(camera_id));
-
-        // What should the bitdepth be configurable?
-        let gfx_image = Gfx::new(
-            defaults.canvas_bit_depth.into(),
-            canvas.size.x as usize,
-            canvas.size.y as usize,
-        );
-        let gfx_handle = gfxs.add(gfx_image);
-        let material = state.gfx_material(&mut gfx_materials);
-        canvas.gfx_handle = gfx_handle.clone();
-        canvas.background = Some(
-            commands
-                .spawn((
-                    Name::new("canvas"),
-                    GfxSprite {
-                        image: gfx_handle,
-                        material,
-                    },
-                    GfxDirty::default(),
-                    Transform::from_xyz(0.0, 0.0, -100.0),
-                    Background,
-                ))
-                .insert(ChildOf(camera_id))
-                .id(),
-        );
     } else if canvas.is_changed() {
         trace!("sync canvas");
     }
@@ -286,16 +265,12 @@ impl super::Pico8<'_, '_> {
         match color.unwrap_or(self.state.draw_state.pen) {
             PColor::Palette(p) => {
                 let p = self.state.pal_map.map_or_mod(p) as u8;
+                let gfx_handle = self.ensure_pixel_canvas_gfx()?;
                 let mut gfx = self
                     .gfxs
-                    .get_mut(&self.canvas.gfx_handle)
+                    .get_mut(&gfx_handle)
                     .ok_or(Error::NoAsset("gfx".into()))?;
                 if gfx.set(pos.x as usize, pos.y as usize, p) {
-                    // if let Some(background) = self.canvas.background {
-                    //     self.commands
-                    //         .entity(background)
-                    //         .insert(Background);
-                    // }
                     Ok(())
                 } else {
                     Err(Error::InvalidArgument(
@@ -308,17 +283,101 @@ impl super::Pico8<'_, '_> {
                 }
             }
             _ => {
-                todo!()
+                todo!("Write an RGBA color.")
+                // let c = self.get_color(color.into())?;
+                // let image = self
+                //     .images
+                //     .get_mut(&self.canvas.handle)
+                //     .ok_or(Error::NoAsset("canvas".into()))?;
+                // image.set_color_at(pos.x, pos.y, c)?;
+                // Ok(())
             }
         }
-        // todo!()
-        // let c = self.get_color(color.into())?;
-        // let image = self
-        //     .images
-        //     .get_mut(&self.canvas.handle)
-        //     .ok_or(Error::NoAsset("canvas".into()))?;
-        // image.set_color_at(pos.x, pos.y, c)?;
-        // Ok(())
+    }
+
+    /// Write target for `pset`: the latest visible PixelCanvas if it is still
+    /// the last Clearable issued, otherwise a resurrected or newly spawned one.
+    fn ensure_pixel_canvas_gfx(&mut self) -> Result<Handle<Gfx>, Error> {
+        let mut latest_visible: Option<(Entity, usize)> = None;
+        let mut hidden: Option<Entity> = None;
+        let mut count = 0usize;
+        for (entity, clearable, _) in self.pixel_canvases.iter() {
+            count += 1;
+            match clearable.state {
+                ClearState::Visible => {
+                    if latest_visible.is_none_or(|(_, dc)| clearable.draw_count >= dc) {
+                        latest_visible = Some((entity, clearable.draw_count));
+                    }
+                }
+                ClearState::Hidden { .. } => {
+                    hidden = Some(entity);
+                }
+            }
+        }
+
+        let needs_new = match latest_visible {
+            Some((_, draw_count)) => draw_counter() != draw_count + 1,
+            None => true,
+        };
+
+        if !needs_new {
+            let entity = latest_visible.expect("visible pixel canvas").0;
+            return self.pixel_canvas_gfx(entity);
+        }
+
+        if let Some(entity) = hidden {
+            if let Ok((_, mut clearable, mut visibility)) = self.pixel_canvases.get_mut(entity) {
+                clearable.resurrect();
+                *visibility = Visibility::Inherited;
+            }
+            let handle = self.pixel_canvas_gfx(entity)?;
+            if let Some(mut gfx) = self.gfxs.get_mut(&handle) {
+                gfx.clear_canvas();
+            }
+            return Ok(handle);
+        }
+
+        if count >= MAX_PIXEL_CANVASES {
+            warn!("pixel canvas cap ({MAX_PIXEL_CANVASES}) reached; writing existing canvas");
+            if let Some((entity, _)) = latest_visible {
+                return self.pixel_canvas_gfx(entity);
+            }
+            return Err(Error::NoAsset("pixel canvas".into()));
+        }
+
+        let camera = self
+            .n9_cameras
+            .single()
+            .map_err(|_| Error::NoSuch("camera".into()))?;
+        let gfx = Gfx::new_pixel_canvas(
+            self.canvas.bit_depth as usize,
+            self.canvas.size.x as usize,
+            self.canvas.size.y as usize,
+        );
+        let gfx_handle = self.gfxs.add(gfx);
+        let material = self.gfx_material();
+        let clearable = Clearable::new(self.defaults.time_to_live);
+        self.commands.spawn((
+            Name::new("pixel canvas"),
+            PixelCanvas,
+            GfxSprite {
+                image: gfx_handle.clone(),
+                material,
+            },
+            GfxDirty::default(),
+            Position::default(),
+            clearable,
+            Visibility::Inherited,
+            ChildOf(camera),
+        ));
+        Ok(gfx_handle)
+    }
+
+    fn pixel_canvas_gfx(&self, entity: Entity) -> Result<Handle<Gfx>, Error> {
+        self.gfx_sprites
+            .get(entity)
+            .map(|sprite| sprite.image.clone())
+            .map_err(|_| Error::NoAsset("pixel canvas gfx".into()))
     }
 
     // XXX: pget needed

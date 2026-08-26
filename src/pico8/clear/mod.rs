@@ -1,7 +1,7 @@
 use super::canvas;
 use crate::{
     PColor,
-    pico8::{Gfx, GfxDirty, GfxSprite, Pico8Asset, Pico8Handle, Pico8State},
+    pico8::{Pico8Asset, Pico8Handle, Pico8State},
 };
 use bevy::{ecs::lifecycle::HookContext, prelude::*};
 use mashmap::MashMap;
@@ -11,6 +11,10 @@ use counter::DrawCounter;
 
 static DRAW_COUNTER: DrawCounter = DrawCounter::new(1);
 const MAX_EXPECTED_CLEARABLES: f32 = 1000.0;
+
+pub(crate) fn draw_counter() -> usize {
+    DRAW_COUNTER.get()
+}
 
 pub(crate) fn plugin(app: &mut App) {
     app //.register_type::<Clearable>()
@@ -198,9 +202,7 @@ pub(crate) fn clear_screen(
     mut state: ResMut<Pico8State>,
     mut cache: ResMut<ClearCache>,
     mut despawn_on_next_clear: ResMut<DespawnClearablesOnNextClear>,
-    mut gfxs: ResMut<Assets<Gfx>>,
     one_color: Single<&mut Sprite, With<canvas::OneColorBackground>>,
-    background: Single<(Entity, &GfxSprite, &mut GfxDirty), With<canvas::Background>>,
     pico8_handle: Option<Res<Pico8Handle>>,
     pico8_assets: Res<Assets<Pico8Asset>>,
     images: Res<Assets<Image>>,
@@ -230,16 +232,6 @@ pub(crate) fn clear_screen(
             sprite.color = Srgba::rgb(1.0, 0.0, 1.0).into(); // Ugly pink
         }
     }
-    let (_background_id, gfx_sprite, mut gfx_dirty) = background.into_inner();
-
-    // Clear the background if needed.
-    if gfx_dirty.0 {
-        if let Some(mut gfx) = gfxs.get_mut(&gfx_sprite.image) {
-            trace!("Clearing Background pixels.");
-            gfx.data.set_elements(0x00);
-        }
-        gfx_dirty.0 = false;
-    }
 
     if despawn_on_next_clear.0 {
         despawn_on_next_clear.0 = false;
@@ -259,15 +251,18 @@ pub(crate) fn clear_screen(
                 // It still has time.
             }
             None => {
-                if clearable.time_to_live == 0 || clearable.hash.is_none() {
+                if clearable.time_to_live == 0 {
                     commands.entity(id).despawn();
-                } else {
+                } else if clearable.hash.is_some() {
                     *visibility = Visibility::Hidden;
                     if cache.insert(&clearable, id) {
                         assert!(clearable.mark_cached());
                     } else {
                         panic!();
                     }
+                } else {
+                    *visibility = Visibility::Hidden;
+                    assert!(clearable.mark_cached());
                 }
             }
         }

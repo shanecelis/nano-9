@@ -681,7 +681,11 @@ impl Config {
 
         commands.insert_resource(N9Canvas {
             size: canvas_size,
-            ..default()
+            bit_depth: self
+                .defaults
+                .as_ref()
+                .and_then(|d| d.canvas_bit_depth)
+                .unwrap_or(4),
         });
 
         if let Some(fps) = self.frames_per_second {

@@ -192,6 +192,7 @@ impl Cart {
                 }
                 gfx = Some(Gfx {
                     bitdepth: 4,
+                    occupancy: None,
                     data: BitVec::<u8, Lsb0>::from_vec(bytes),
                     width: columns,
                     height: rows,
@@ -480,6 +481,7 @@ impl AssetLoader for PngCartLoader {
 
                 let gfx = Gfx {
                     bitdepth: 4,
+                    occupancy: None,
                     data: BitVec::<u8, Lsb0>::from_vec(nybbles),
                     width: 128,
                     height: 128,
@@ -495,6 +497,7 @@ impl AssetLoader for PngCartLoader {
 
                 let gfx = Gfx {
                     bitdepth: 4,
+                    occupancy: None,
                     data: BitVec::<u8, Lsb0>::from_vec(nybbles),
                     width: 128,
                     height: 64,
