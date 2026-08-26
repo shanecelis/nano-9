@@ -11,15 +11,36 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 pub(crate) fn plugin(app: &mut App) {
-    app.init_resource::<ReadyQueue>()
+    app.init_resource::<CartArgs>()
+        .init_resource::<ReadyQueue>()
         .add_message::<ExtcmdRequest>()
+        .add_message::<LoadCartRequest>()
         .add_observer(queue_startup_window)
-        .add_systems(Last, pump_ready_queue);
+        .add_systems(Last, pump_ready_queue)
+        .add_systems(Update, handle_load_cart);
     if app.world().contains_resource::<Headless>() {
         app.add_systems(Startup, queue_startup_headless);
     }
     #[cfg(feature = "scripting")]
     lua::plugin(app);
+}
+
+/// Parameter string and breadcrumb from `load()` or the CLI `-p` flag.
+///
+/// Pico-8 `stat(6)` is the parameter string; `stat(100)` is the breadcrumb.
+#[derive(Resource, Clone, Debug, Default, Reflect)]
+#[reflect(Resource)]
+pub struct CartArgs {
+    /// Arbitrary string from `load(..., param)` or `-p`. Pico-8 `stat(6)`.
+    pub param: String,
+    /// Breadcrumb from `load(filename, breadcrumb, ...)`. Pico-8 `stat(100)`.
+    pub breadcrumb: String,
+}
+
+/// Pico-8 `load(filename)` — swap in another cart.
+#[derive(Message, Clone, Debug)]
+pub(crate) struct LoadCartRequest {
+    pub filename: String,
 }
 
 /// Sequential `extcmd` work processed one item at a time in the last-frame pump.
@@ -47,6 +68,28 @@ fn queue_startup_window(
 
 fn queue_startup_headless(mut writer: MessageWriter<ExtcmdRequest>) {
     writer.write(ExtcmdRequest::WaitTilReady);
+}
+
+fn handle_load_cart(
+    mut reader: MessageReader<LoadCartRequest>,
+    asset_server: Res<AssetServer>,
+    mut commands: Commands,
+    mut next_state: ResMut<NextState<RunState>>,
+    #[cfg(feature = "scripting")] scripts: Query<
+        Entity,
+        With<bevy_mod_scripting::core::script::ScriptComponent>,
+    >,
+) {
+    let Some(req) = reader.read().last().cloned() else {
+        return;
+    };
+    #[cfg(feature = "scripting")]
+    for entity in &scripts {
+        commands.entity(entity).despawn();
+    }
+    let handle: Handle<Pico8Asset> = asset_server.load(req.filename.clone());
+    commands.insert_resource(Pico8Handle::from(handle));
+    next_state.set(RunState::Uninit);
 }
 
 fn pump_ready_queue(
@@ -218,6 +261,28 @@ impl super::Pico8<'_, '_> {
         }
     }
 
+    /// Pico-8 `load(filename, [breadcrumb], [param])`.
+    ///
+    /// Stores the breadcrumb (`stat(100)`) and parameter string (`stat(6)`), then
+    /// queues a cart swap. A missing filename (Pico-8's load dialog) is not supported.
+    pub fn load(
+        &mut self,
+        filename: Option<&str>,
+        breadcrumb: Option<&str>,
+        param: Option<&str>,
+    ) -> Result<(), Error> {
+        self.cart_args.breadcrumb = breadcrumb.unwrap_or("").to_string();
+        self.cart_args.param = param.unwrap_or("").to_string();
+        let Some(filename) = filename.filter(|name| !name.is_empty()) else {
+            warn!("load() with no filename is not implemented (file picker)");
+            return Ok(());
+        };
+        self.commands.write_message(LoadCartRequest {
+            filename: filename.to_string(),
+        });
+        Ok(())
+    }
+
     fn screenshot_path(&self) -> PathBuf {
         let stem = self
             .state
@@ -313,11 +378,11 @@ mod lua {
     use super::*;
     use crate::pico8::lua::with_pico8;
 
+    use bevy_mod_scripting::bindings::ScriptValue;
     use bevy_mod_scripting::bindings::function::{
         namespace::{GlobalNamespace, NamespaceBuilder},
         script_function::FunctionCallContext,
     };
-    use bevy_mod_scripting::bindings::ScriptValue;
 
     pub(crate) fn plugin(app: &mut App) {
         let world = app.world_mut();
@@ -343,6 +408,19 @@ mod lua {
                     let p1s = p1.as_ref().and_then(script_value_to_string);
                     let p2n = p2.as_ref().and_then(script_value_to_f32);
                     with_pico8(&ctx, move |pico8| pico8.extcmd(&cmd, p1s.as_deref(), p2n))
+                },
+            )
+            .register(
+                "_n9_load",
+                |ctx: FunctionCallContext,
+                 filename: Option<String>,
+                 breadcrumb: Option<ScriptValue>,
+                 param: Option<ScriptValue>| {
+                    let breadcrumb = breadcrumb.as_ref().and_then(script_value_to_string);
+                    let param = param.as_ref().and_then(script_value_to_string);
+                    with_pico8(&ctx, move |pico8| {
+                        pico8.load(filename.as_deref(), breadcrumb.as_deref(), param.as_deref())
+                    })
                 },
             );
     }

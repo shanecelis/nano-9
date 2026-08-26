@@ -8,7 +8,9 @@ function _draw()
   rectfill(10, 50, 40, 70, 11)
   rect(90, 40, 50, 10, 12)
   rect(50, 50, 90, 80, 7)
-  extcmd("set_filename", "rect-swap")
-  extcmd("screen", 1, 1)
-  extcmd("shutdown")
+  if stat(6)=="headless" then
+    extcmd("set_filename", "rect-swap")
+    extcmd("screen", 1, 1)
+    extcmd("shutdown")
+  end
 end

@@ -151,8 +151,13 @@ position of draw state.
 
 ## System
 - [ ] menuitem(index, [label, callback])
-- [ ] extcmd(cmd)
-- [ ] run([breadcrumb])
+- [/] extcmd(cmd)
+- [ ] run([breadcrumb], [param])
+- [/] load(filename, [breadcrumb], [param])
+
+`load()` stores the breadcrumb (`stat(100)`) and parameter string (`stat(6)`)
+and queues a cart swap. The CLI `-p` / `--param` flag provides `stat(6)` the
+same way Pico-8's `-p` does. The load dialog (no filename) is not implemented.
 
 ## Debugging
 - [ ] assert(cond, [message])
@@ -160,15 +165,17 @@ position of draw state.
 - [/] stat(n)
 Supports keyboard and some mouse functions.
 
-| value | description           |
-|-------|-----------------------|
-| 8     | target frame rate     |
-| 9     | actual frame rate     |
-| 30    | has keyboard input    |
-| 31    | keyboard input if any |
-| 32    | mouse position x      |
-| 33    | mouse position y      |
-| 34    | mouse buttons         |
+| value | description                                      |
+|-------|--------------------------------------------------|
+| 6     | parameter string from `load()` or CLI `-p`       |
+| 8     | target frame rate                                |
+| 9     | actual frame rate                                |
+| 30    | has keyboard input                               |
+| 31    | keyboard input if any                            |
+| 32    | mouse position x                                 |
+| 33    | mouse position y                                 |
+| 34    | mouse buttons                                    |
+| 100   | breadcrumb string from `load()`                  |
 - [x] stop() (undocumented)
 - [ ] trace() (undocumented)
 

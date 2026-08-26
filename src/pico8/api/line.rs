@@ -1,5 +1,5 @@
+use super::raster::{Raster, bresenham_inclusive};
 use super::*;
-use super::raster::{bresenham_inclusive, Raster};
 use crate::translate::Position;
 
 pub(crate) fn plugin(app: &mut App) {

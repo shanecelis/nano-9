@@ -160,9 +160,10 @@ pub(crate) fn compute_image(
         .get(gfx_handle)
         .ok_or(Error::NoSuch("gfx image".into()))?;
     trace!("creating image for gfx {}", gfx_id);
-    let image = images.add(gfx.try_to_image(|i, _n, bytes| {
-        gfx_material.pal_map.write_color(&palette_data, i, bytes)
-    })?);
+    let image =
+        images.add(gfx.try_to_image(|i, _n, bytes| {
+            gfx_material.pal_map.write_color(&palette_data, i, bytes)
+        })?);
     image_events.write(AssetEvent::Added { id: image.id() });
     // Update or add image to the map.
     pairs

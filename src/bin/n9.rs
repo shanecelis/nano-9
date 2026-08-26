@@ -8,7 +8,7 @@ use bevy::{
 use clap::{Parser, Subcommand};
 use nano9::{
     config::{load_and_insert_pico8, pause_pico8_when_loaded, run_pico8_when_loaded},
-    pico8::{CartLoaderSettings, Pico8Asset, Pico8Handle, SharedData},
+    pico8::{CartArgs, CartLoaderSettings, Pico8Asset, Pico8Handle, SharedData},
     *,
 };
 use std::{env, ffi::OsStr, fs, io, path::PathBuf, process::ExitCode};
@@ -56,6 +56,9 @@ enum Command {
         #[arg(long)]
         /// No window; render to a GPU image (for screenshots / CI).
         headless: bool,
+        #[arg(short = 'p', long = "param")]
+        /// Parameter string available to the cart as `stat(6)` (Pico-8 `-p`).
+        param: Option<String>,
     },
     /// Check a Pico-8 cart or Nano-9 project
     ///
@@ -123,6 +126,8 @@ struct CliDefault {
     pause: bool,
     #[arg(long)]
     headless: bool,
+    #[arg(short = 'p', long = "param")]
+    param: Option<String>,
     path: PathBuf,
 }
 
@@ -135,6 +140,7 @@ fn main() -> io::Result<ExitCode> {
                     shared_data: cli_default.shared_data,
                     pause: cli_default.pause,
                     headless: cli_default.headless,
+                    param: cli_default.param,
                 },
             })
             .map_err(|_| err),
@@ -394,14 +400,15 @@ enum Lookup {
 }
 
 fn run(cli: Cli) -> io::Result<ExitCode> {
-    let (input_path, shared_data, pause, check, headless) = match cli.command {
+    let (input_path, shared_data, pause, check, headless, param) = match cli.command {
         Command::Run {
             path,
             shared_data,
             pause,
             headless,
-        } => (path, shared_data, pause, false, headless),
-        Command::Check { path } => (path, None, false, true, false),
+            param,
+        } => (path, shared_data, pause, false, headless, param),
+        Command::Check { path } => (path, None, false, true, false, None),
         _ => unreachable!(),
     };
 
@@ -533,6 +540,9 @@ fn run(cli: Cli) -> io::Result<ExitCode> {
         app.add_plugins(HeadlessNano9Plugins);
     } else {
         app.add_plugins(Nano9Plugins);
+    }
+    if let Some(param) = param {
+        app.insert_resource(CartArgs { param, ..default() });
     }
     // We emit info logs now because the `LogPlugin` is now registered and they
     // will be seen. Before adding `Nano9Plugins` no `info!` lines will be

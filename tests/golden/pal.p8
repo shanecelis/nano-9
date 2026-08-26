@@ -14,7 +14,9 @@ function _draw()
   pset(12, 80, 8)
   pal()
   pset(20, 80, 8)
-  extcmd("set_filename", "pal")
-  extcmd("screen", 1, 1)
-  extcmd("shutdown")
+  if stat(6)=="headless" then
+    extcmd("set_filename", "pal")
+    extcmd("screen", 1, 1)
+    extcmd("shutdown")
+  end
 end

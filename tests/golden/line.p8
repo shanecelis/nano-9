@@ -9,7 +9,9 @@ function _draw()
   line(0, 127, 127, 0, 8)
   line(10, 64, 117, 64, 11)
   line(64, 10, 64, 117, 12)
-  extcmd("set_filename", "line")
-  extcmd("screen", 1, 1)
-  extcmd("shutdown")
+  if stat(6)=="headless" then
+    extcmd("set_filename", "line")
+    extcmd("screen", 1, 1)
+    extcmd("shutdown")
+  end
 end

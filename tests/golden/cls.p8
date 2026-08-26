@@ -4,7 +4,9 @@ __lua__
 -- golden: cls
 function _draw()
   cls(8)
-  extcmd("set_filename", "cls")
-  extcmd("screen", 1, 1)
-  extcmd("shutdown")
+  if stat(6)=="headless" then
+    extcmd("set_filename", "cls")
+    extcmd("screen", 1, 1)
+    extcmd("shutdown")
+  end
 end

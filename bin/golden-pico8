@@ -78,7 +78,7 @@ tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
 echo "using $PICO8_BIN"
-"$PICO8_BIN" -x "$cart" -screenshot_scale 1 -root_path "$tmp" -windowed 1
+"$PICO8_BIN" -x "$cart" -p headless -screenshot_scale 1 -root_path "$tmp" -windowed 1
 
 src=""
 if [[ -f "$tmp/${name}.png" ]]; then

@@ -12,7 +12,9 @@ function _draw()
   pset(52, 50)
   color(12)
   rect(60, 20, 110, 70)
-  extcmd("set_filename", "color")
-  extcmd("screen", 1, 1)
-  extcmd("shutdown")
+  if stat(6)=="headless" then
+    extcmd("set_filename", "color")
+    extcmd("screen", 1, 1)
+    extcmd("shutdown")
+  end
 end

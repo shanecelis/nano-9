@@ -19,7 +19,9 @@ function _draw()
   -- cursor sets pen color
   cursor(8, 80, 8)
   print("pen")
-  extcmd("set_filename", "print-cursor")
-  extcmd("screen", 1, 1)
-  extcmd("shutdown")
+  if stat(6)=="headless" then
+    extcmd("set_filename", "print-cursor")
+    extcmd("screen", 1, 1)
+    extcmd("shutdown")
+  end
 end

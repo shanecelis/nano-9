@@ -7,9 +7,11 @@ function _draw()
   map(0, 0, 8, 8, 4, 1)
   map(0, 0, 8, 24, 4, 2)
   map(0, 1, 8, 56, 4, 1)
-  extcmd("set_filename", "map")
-  extcmd("screen", 1, 1)
-  extcmd("shutdown")
+  if stat(6)=="headless" then
+    extcmd("set_filename", "map")
+    extcmd("screen", 1, 1)
+    extcmd("shutdown")
+  end
 end
 __gfx__
 8888888887878787000c0000b0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000

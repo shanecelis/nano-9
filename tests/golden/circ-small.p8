@@ -16,7 +16,9 @@ function _draw()
   circ(64, 32, 4, 11)
   circfill(9, 56, 2, 12)
   circ(21, 56, 2, 12)
-  extcmd("set_filename", "circ-small")
-  extcmd("screen", 1, 1)
-  extcmd("shutdown")
+  if stat(6)=="headless" then
+    extcmd("set_filename", "circ-small")
+    extcmd("screen", 1, 1)
+    extcmd("shutdown")
+  end
 end

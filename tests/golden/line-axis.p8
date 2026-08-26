@@ -13,7 +13,9 @@ function _draw()
   line(40, 16, 42, 50, 12)
   line(50, 40, 90, 40, 8)
   line(64, 20, 64, 60, 11)
-  extcmd("set_filename", "line-axis")
-  extcmd("screen", 1, 1)
-  extcmd("shutdown")
+  if stat(6)=="headless" then
+    extcmd("set_filename", "line-axis")
+    extcmd("screen", 1, 1)
+    extcmd("shutdown")
+  end
 end

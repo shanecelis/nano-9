@@ -9,7 +9,9 @@ function _draw()
   rectfill(0, 0, 20, 20, 11)
   camera(0, 0)
   rectfill(100, 100, 120, 120, 12)
-  extcmd("set_filename", "camera")
-  extcmd("screen", 1, 1)
-  extcmd("shutdown")
+  if stat(6)=="headless" then
+    extcmd("set_filename", "camera")
+    extcmd("screen", 1, 1)
+    extcmd("shutdown")
+  end
 end

@@ -30,6 +30,7 @@ impl super::Pico8<'_, '_> {
     #[cfg(feature = "scripting")]
     pub fn stat(&mut self, n: u8, _value: Option<u8>) -> Result<ScriptValue, Error> {
         match n {
+            6 => Ok(ScriptValue::String(self.cart_args.param.clone().into())),
             8 => Ok(ScriptValue::Float(1.0 / self.delta_time() as f64)), // This should be the target frame rate
             9 => Ok(ScriptValue::Float(1.0 / self.delta_time() as f64)),
             30 => Ok(ScriptValue::Bool(!self.key_input.buffer.is_empty())),
@@ -43,6 +44,9 @@ impl super::Pico8<'_, '_> {
                 negate_y(self.mouse_input.position.y) as f64
             )),
             34 => Ok(ScriptValue::Integer(self.mouse_input.buttons as i64)),
+            100 => Ok(ScriptValue::String(
+                self.cart_args.breadcrumb.clone().into(),
+            )),
             _ => Err(Error::UnsupportedStat(n))?,
         }
     }

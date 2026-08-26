@@ -15,9 +15,11 @@ function _draw()
   palt()
   sspr(0, 0, 8, 8, 8, 48, 16, 16)
   sspr(0, 0, 8, 8, 32, 48, 24, 8)
-  extcmd("set_filename", "spr")
-  extcmd("screen", 1, 1)
-  extcmd("shutdown")
+  if stat(6)=="headless" then
+    extcmd("set_filename", "spr")
+    extcmd("screen", 1, 1)
+    extcmd("shutdown")
+  end
 end
 __gfx__
 8888888887878787000c0000b0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000

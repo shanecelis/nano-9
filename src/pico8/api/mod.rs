@@ -45,6 +45,7 @@ mod rand;
 pub(crate) mod sys;
 #[cfg(feature = "level")]
 pub use level::*;
+pub use sys::CartArgs;
 mod mesh;
 pub use mesh::*;
 

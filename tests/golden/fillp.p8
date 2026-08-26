@@ -8,7 +8,9 @@ function _draw()
   rectfill(10, 10, 70, 70, 8)
   fillp()
   rectfill(80, 10, 120, 50, 11)
-  extcmd("set_filename", "fillp")
-  extcmd("screen", 1, 1)
-  extcmd("shutdown")
+  if stat(6)=="headless" then
+    extcmd("set_filename", "fillp")
+    extcmd("screen", 1, 1)
+    extcmd("shutdown")
+  end
 end

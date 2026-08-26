@@ -6,6 +6,8 @@
 -- [2]: @shanecelis@mastodon.gamedev.place
 -- [3]: https://opensource.org/licenses/MIT
 
+-- Lua 5.4's load(); Pico-8's load() is installed below.
+local lua_load = load
 local NUMBER_BITS <const> = 32
 printh = print
 debug_print = print
@@ -231,10 +233,10 @@ costatus = coroutine.status
 yield = coroutine.yield
 
 function _eval(str, output)
-    local chunk, err = load("return " .. str)
+    local chunk, err = lua_load("return " .. str)
     if not chunk then
         -- Try it without returning anything.
-        chunk, err = load(str)
+        chunk, err = lua_load(str)
         if not chunk then
             return nil, err
         end
@@ -244,6 +246,10 @@ function _eval(str, output)
         world.message(tostr(v))
     end
     return v
+end
+
+function load(filename, breadcrumb, param)
+    return _n9_load(filename, breadcrumb, param)
 end
 
 -- function run(breadcrumb)
