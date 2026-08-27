@@ -24,6 +24,10 @@
       }
     </style>
     <!--
+      Pick a cart with ?cart= (path under assets/). Examples:
+        /?cart=pset.lua
+        /?cart=golden/spr.p8
+      Drop or symlink files into ../assets (or ../tests/golden).
       16MB wasm stack is set in .cargo/config.toml
       (`-C link-arg=-zstack-size=16777216`). Asset `.meta` files are skipped
       via AssetMetaCheck::Never on wasm.
@@ -38,6 +42,7 @@
       data-wasm-opt="0"
     />
     <link data-trunk rel="copy-dir" href="../assets" data-target-path="assets" />
+    <link data-trunk rel="copy-dir" href="../tests/golden" data-target-path="assets/golden" />
   </head>
   <body>
     <canvas id="nano9-canvas"></canvas>

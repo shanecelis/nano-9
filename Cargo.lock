@@ -5463,6 +5463,7 @@ dependencies = [
  "tiled",
  "toml 0.8.23",
  "version-sync",
+ "web-sys",
 ]
 
 [[package]]
