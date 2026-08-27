@@ -4,6 +4,8 @@ use crate::{
     CanvasRenderTarget, Headless,
     headless::{TEXT2D_LAYOUT_SCALE, setup_render_target},
 };
+#[cfg(target_arch = "wasm32")]
+use bevy::render::view::Msaa;
 use bevy::{
     camera::{CompositingSpace, ImageRenderTarget, RenderTarget, Viewport},
     window::{PrimaryWindow, WindowResized},
@@ -156,9 +158,15 @@ fn spawn_camera(
                 let mut camera = parent.spawn((
                     Name::new("camera"),
                     Camera2d,
-                    // Keep `Color::srgba_*` bit-exact: shaders write gamma-encoded
-                    // values, matching the palette PNG and image editors.
+                    // Native: gamma-encoded writes, bit-exact with palette PNGs.
+                    // Wasm/WebGL2 cannot create those sRGB view formats
+                    // (`DownlevelFlags::VIEW_FORMATS`).
+                    #[cfg(not(target_arch = "wasm32"))]
                     CompositingSpace::Srgb,
+                    #[cfg(target_arch = "wasm32")]
+                    CompositingSpace::Linear,
+                    #[cfg(target_arch = "wasm32")]
+                    Msaa::Off,
                     Projection::Orthographic(OrthographicProjection::default_2d()),
                     IsDefaultUiCamera,
                     InheritedVisibility::default(),

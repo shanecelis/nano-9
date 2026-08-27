@@ -190,7 +190,9 @@ impl Nano9Plugin {
                 resolution,
                 visible: cfg!(target_arch = "wasm32"),
                 #[cfg(target_arch = "wasm32")]
-                canvas: Some("#nano9-canvas".into()),
+                canvas: Some(crate::plugins::WASM_CANVAS_SELECTOR.into()),
+                #[cfg(target_arch = "wasm32")]
+                fit_canvas_to_parent: false,
                 ..default()
             }),
             ..default()
@@ -398,6 +400,9 @@ impl Plugin for Nano9Plugin {
         app.init_resource::<pico8::Defaults>()
             .add_plugins(crate::plugin);
 
+        #[cfg(target_arch = "wasm32")]
+        app.add_systems(PreUpdate, clamp_wasm_window_to_gl_limits);
+
         #[cfg(feature = "framepace")]
         app.add_plugins(bevy_framepace::FramepacePlugin);
 
@@ -529,6 +534,29 @@ pub fn info_on_asset_event<T: Asset>() -> impl FnMut(MessageReader<AssetEvent<T>
                 }
             }
         }
+    }
+}
+
+/// WebGL2's default max 2D texture size is 2048. A full-window canvas on a
+/// wide display can exceed that and panic in `Surface::configure`.
+#[cfg(target_arch = "wasm32")]
+fn clamp_wasm_window_to_gl_limits(
+    mut windows: Query<&mut Window, With<bevy::window::PrimaryWindow>>,
+    device: Option<Res<bevy::render::renderer::RenderDevice>>,
+) {
+    let max = device
+        .map(|d| d.limits().max_texture_dimension_2d)
+        .unwrap_or(2048);
+    for mut window in &mut windows {
+        let w = window.physical_width();
+        let h = window.physical_height();
+        if w <= max && h <= max {
+            continue;
+        }
+        let scale = (max as f32 / w.max(1) as f32).min(max as f32 / h.max(1) as f32);
+        let nw = (w as f32 * scale).floor().max(1.0) as u32;
+        let nh = (h as f32 * scale).floor().max(1.0) as u32;
+        window.resolution.set_physical_resolution(nw, nh);
     }
 }
 

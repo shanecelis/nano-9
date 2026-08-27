@@ -1,4 +1,6 @@
 use super::*;
+#[cfg(target_arch = "wasm32")]
+use bevy::render::view::Msaa;
 
 #[derive(Component, Debug, Reflect)]
 pub struct Nano9Camera3d;
@@ -62,6 +64,8 @@ fn update_camera3d(
                 order: 1,
                 ..default()
             },
+            #[cfg(target_arch = "wasm32")]
+            Msaa::Off,
         ));
     }
 }

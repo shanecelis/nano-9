@@ -660,7 +660,9 @@ impl Config {
             resolution,
             visible: cfg!(target_arch = "wasm32"),
             #[cfg(target_arch = "wasm32")]
-            canvas: Some("#nano9-canvas".into()),
+            canvas: Some(crate::plugins::WASM_CANVAS_SELECTOR.into()),
+            #[cfg(target_arch = "wasm32")]
+            fit_canvas_to_parent: false,
             ..default()
         }
     }

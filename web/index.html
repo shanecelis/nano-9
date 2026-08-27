@@ -5,8 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Nano-9 web cart</title>
     <style>
-      html, body { margin: 0; height: 100%; background: #111; }
-      #nano9-canvas { width: 100%; height: 100%; outline: none; }
+      html, body {
+        margin: 0;
+        height: 100%;
+        background: #111;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      /* CSS scales the display only. The GPU swapchain stays at Bevy's
+         window resolution (default 512²) so WebGL2's 2048 limit is not hit. */
+      #nano9-canvas {
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+        width: min(100vmin, 100%);
+        height: min(100vmin, 100%);
+        outline: none;
+      }
     </style>
     <!--
       16MB wasm stack is set in .cargo/config.toml

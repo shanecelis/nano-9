@@ -1,6 +1,11 @@
 use crate::{Nano9Plugin, headless};
 #[cfg(target_arch = "wasm32")]
 use bevy::asset::AssetMetaCheck;
+#[cfg(target_arch = "wasm32")]
+use bevy::render::{
+    RenderPlugin,
+    settings::{Backends, RenderCreation, WgpuSettings, WgpuSettingsPriority},
+};
 use bevy::{
     app::{PluginGroup, PluginGroupBuilder, ScheduleRunnerPlugin},
     audio::{AudioPlugin, Volume},
@@ -14,6 +19,30 @@ use std::time::Duration;
 /// Nano-9 plugins
 #[derive(Debug, Default)]
 pub struct Nano9Plugins;
+
+/// Canvas selector Bevy binds on wasm. Must exist in `web/index.html` before GPU init.
+pub const WASM_CANVAS_SELECTOR: &str = "#nano9-canvas";
+
+fn wasm_primary_window() -> Option<Window> {
+    #[cfg(target_arch = "wasm32")]
+    {
+        // Keep the GPU buffer at Pico-8 screen size. `fit_canvas_to_parent`
+        // copies the CSS layout size (often >2048 on a wide display) into the
+        // swapchain, which exceeds WebGL2's max texture dimension.
+        Some(Window {
+            canvas: Some(WASM_CANVAS_SELECTOR.into()),
+            fit_canvas_to_parent: false,
+            prevent_default_event_handling: false,
+            visible: true,
+            resolution: crate::config::DEFAULT_SCREEN_SIZE.into(),
+            ..default()
+        })
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        None
+    }
+}
 
 // impl Nano9Plugins {
 //     pub fn new(config: Config) -> Self {
@@ -50,16 +79,28 @@ impl PluginGroup for Nano9Plugins {
                 ..default()
             })
             .set(WindowPlugin {
-                primary_window: None,
+                // Native: spawn the window later from Nano9.toml.
+                // Wasm/WebGL: wgpu only enumerates a GPU if a canvas exists
+                // when RenderPlugin asks for an adapter.
+                primary_window: wasm_primary_window(),
                 exit_condition: ExitCondition::OnPrimaryClosed,
                 ..default()
             });
         #[cfg(target_arch = "wasm32")]
         {
-            default_plugins = default_plugins.set(AssetPlugin {
-                meta_check: AssetMetaCheck::Never,
-                ..default()
-            });
+            default_plugins = default_plugins
+                .set(AssetPlugin {
+                    meta_check: AssetMetaCheck::Never,
+                    ..default()
+                })
+                .set(RenderPlugin {
+                    render_creation: RenderCreation::Automatic(Box::new(WgpuSettings {
+                        backends: Some(Backends::GL),
+                        priority: WgpuSettingsPriority::WebGL2,
+                        ..default()
+                    })),
+                    ..default()
+                });
         }
         let group = group.add_group(default_plugins);
 
