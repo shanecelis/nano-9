@@ -200,54 +200,64 @@ pub fn sync_window_size(
     primary_windows: Query<&Window, With<PrimaryWindow>>,
     mut projection_query: Query<&mut Projection, With<Nano9Camera>>,
     mut camera_query: Query<&mut Camera, With<Nano9Camera>>,
+    mut pending: Local<bool>,
 ) {
+    if resize_event
+        .read()
+        .any(|e| primary_windows.get(e.window).is_ok())
+    {
+        *pending = true;
+    }
+    if !*pending {
+        return;
+    }
+    // `WindowResized` expires after two frames; keep the latch until the cart's
+    // canvas (and camera) exist so late-loading assets still get a scale.
     let Some(canvas) = canvas else {
         return;
     };
-    if let Some(e) = resize_event
-        .read()
-        .filter(|e| primary_windows.get(e.window).is_ok())
-        .last()
-    {
-        let primary_window = primary_windows.get(e.window).unwrap();
+    if camera_query.is_empty() {
+        return;
+    }
+    let Ok(primary_window) = primary_windows.single() else {
+        return;
+    };
 
-        let window_scale = primary_window.scale_factor();
-        let window_size = Vec2::new(
-            primary_window.physical_width() as f32,
-            primary_window.physical_height() as f32,
-        ) / window_scale;
+    let window_scale = primary_window.scale_factor();
+    let window_size = Vec2::new(
+        primary_window.physical_width() as f32,
+        primary_window.physical_height() as f32,
+    ) / window_scale;
 
-        let canvas_size = canvas.size.as_vec2();
-        // `new_scale` is the number of physical pixels per logical pixels.
-        let new_scale =
-                // Canvas is longer than it is tall. Fit the width first.
-                (window_size.y / canvas_size.y).min(window_size.x / canvas_size.x);
+    let canvas_size = canvas.size.as_vec2();
+    // `new_scale` is the number of logical window pixels per canvas pixel.
+    let new_scale = (window_size.y / canvas_size.y).min(window_size.x / canvas_size.x);
 
-        for mut projection in projection_query.iter_mut() {
-            match &mut *projection {
-                Projection::Orthographic(orthographic) => {
-                    trace!(
-                        "oldscale {} new_scale {new_scale} window_scale {window_scale}",
-                        &orthographic.scale
-                    );
-                    orthographic.scale = 1.0 / new_scale;
-                }
-                x => warn_once!("Nano9Camera is not an orthographic camera: {:?}", x),
+    for mut projection in projection_query.iter_mut() {
+        match &mut *projection {
+            Projection::Orthographic(orthographic) => {
+                trace!(
+                    "oldscale {} new_scale {new_scale} window_scale {window_scale}",
+                    &orthographic.scale
+                );
+                orthographic.scale = 1.0 / new_scale;
             }
-        }
-
-        let viewport_size = canvas_size * new_scale * window_scale;
-        let start = (window_size * window_scale - viewport_size) / 2.0;
-        trace!("viewport size {} start {}", &viewport_size, &start);
-
-        for mut camera in camera_query.iter_mut() {
-            camera.viewport = Some(Viewport {
-                physical_position: UVec2::new(start.x as u32, start.y as u32),
-                physical_size: UVec2::new(viewport_size.x as u32, viewport_size.y as u32),
-                ..default()
-            });
+            x => warn_once!("Nano9Camera is not an orthographic camera: {:?}", x),
         }
     }
+
+    let viewport_size = canvas_size * new_scale * window_scale;
+    let start = (window_size * window_scale - viewport_size) / 2.0;
+    trace!("viewport size {} start {}", &viewport_size, &start);
+
+    for mut camera in camera_query.iter_mut() {
+        camera.viewport = Some(Viewport {
+            physical_position: UVec2::new(start.x as u32, start.y as u32),
+            physical_size: UVec2::new(viewport_size.x as u32, viewport_size.y as u32),
+            ..default()
+        });
+    }
+    *pending = false;
 }
 
 impl super::Pico8<'_, '_> {
