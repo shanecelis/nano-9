@@ -220,6 +220,41 @@ fn add_logging(app: &mut App) {
             bevy::log::trace!("{}", s);
         });
 }
+
+/// BMS globals are keyed by ident / short path. Drop config twins, HandleTemplate
+/// internals, and colliding Bevy names so each global exists once.
+#[cfg(feature = "scripting")]
+fn script_global_type_filter(reg: &bevy::reflect::TypeRegistration) -> bool {
+    use bevy::reflect::TypePath;
+    let path = reg.type_info().type_path_table().path();
+    if path == crate::config::SpriteSheet::type_path()
+        || path == crate::config::Palette::type_path()
+        || path == crate::config::SpriteMap::type_path()
+        || path == crate::config::Mesh::type_path()
+        || path == crate::config::AudioBank::type_path()
+    {
+        return false;
+    }
+    if path.starts_with("core::ops::Range") {
+        return false;
+    }
+    if path.contains("StrongHandle") {
+        return false;
+    }
+    if path.contains("Vec<")
+        && (path.contains("config::Palette") || path.contains("config::SpriteMap"))
+    {
+        return false;
+    }
+    if path.contains("ArcMutexValue") {
+        return false;
+    }
+    match reg.type_info().type_path_table().ident() {
+        Some("Sphere") => path.starts_with("bevy_math::"),
+        Some("Button") => path.starts_with("bevy_ui::"),
+        _ => true,
+    }
+}
 // use bevy_mod_scripting::bindings::InteropError;
 
 // #[derive(Event)]
@@ -352,35 +387,8 @@ impl Plugin for Nano9Plugin {
             //         },
             //     );
 
-            // Filter out config types and other duplicates so only one type per short name is registered.
             let globals_plugin = CoreScriptGlobalsPlugin {
-                filter: |reg| {
-                    let path = reg.type_info().type_path_table().path();
-                    // Exclude config types (keep pico8/bevy runtime types for scripts).
-                    if path == crate::config::SpriteSheet::type_path()
-                        || path == crate::config::Palette::type_path()
-                        || path == crate::config::SpriteMap::type_path()
-                        || path == crate::config::Mesh::type_path()
-                        || path == crate::config::AudioBank::type_path()
-                    {
-                        return false;
-                    }
-                    // Exclude core::ops::Range so std::ops::Range is the one registered.
-                    if path.starts_with("core::ops::Range") {
-                        return false;
-                    }
-                    // Exclude Arc<StrongHandle> duplicates (alloc vs std); keep neither as global.
-                    if path.contains("StrongHandle") {
-                        return false;
-                    }
-                    // Exclude Vec<config::Palette> so only Vec<pico8::Palette> is in the types global.
-                    if path.contains("Vec<")
-                        && (path.contains("config::Palette") || path.contains("config::SpriteMap"))
-                    {
-                        return false;
-                    }
-                    true
-                },
+                filter: script_global_type_filter,
                 ..Default::default()
             };
             app.add_plugins((BMSPlugin.set(globals_plugin), lua_scripting_plugin));
