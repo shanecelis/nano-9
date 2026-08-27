@@ -58,7 +58,6 @@ pico8-to-lua = { version = "0.1.1", optional = true }
 fixed = { version = "1.29.0", optional = true }
 mashmap = "0.2.2"
 clap = { version = "4.5.39", features = ["derive"], optional = true }
-cmd_lib = { version = "1.9.5", optional = true }
 log = { version = "0.4.27", optional = true }
 env_logger = { version = "0.11.8", optional = true }
 merge2 = "0.3.2"
@@ -74,7 +73,7 @@ web-sys = { version = "0.3", features = ["Window", "Location", "Url", "UrlSearch
 
 [features]
 default = [ "cli", "watcher", "web-asset" ]
-cli = [ "lua-lib", "dep:clap", "dep:cmd_lib", "gameboy", "dep:log", "dep:env_logger", "dep:cmd_lib" ]
+cli = [ "lua-lib", "dep:clap", "gameboy", "dep:log", "dep:env_logger" ]
 lua-lib = [ "rust-lib", "pico8-to-lua", "scripting", "rand", "framepace", "vox" ]
 lua-lib-wasm = [ "negate-y", "fixed-point", "pixel-snap", "rand", "pico8-to-lua", "scripting", "mute" ]
 rust-lib = [ "negate-y", "fixed-point", "pixel-snap", "rand", "framepace", "vox" ]

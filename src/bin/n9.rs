@@ -236,7 +236,6 @@ fn new(cli: Cli) -> io::Result<ExitCode> {
                 // It's a directory path.
                 let assets_path = match language {
                     lang @ Some(Language::Rust | Language::LuaRust) => {
-                        use cmd_lib::run_cmd;
                         info!("Creating new cargo project at {:?}.", &path);
                         let lang = lang.unwrap();
                         let feature = match lang {
@@ -244,47 +243,59 @@ fn new(cli: Cli) -> io::Result<ExitCode> {
                             Language::LuaRust => "lua-lib",
                             Language::Lua => unreachable!(),
                         };
-                        match run_cmd!(
-                            cargo new $path;
-                            cd $path;
-                            cargo add bevy@0.15;
-                            cargo add nano9 --git "https://github.com/shanecelis/nano9.git" --branch dev --no-default-features --features $feature;
-                        ) {
-                            Ok(_) => {
-                                // Copy files
-                                let content = include_str!("templates/Nano9.toml");
-                                let mut p = path.to_path_buf();
-                                p.push("assets");
-                                fs::create_dir_all(&p)?;
-                                p.push("Nano9.toml");
-                                info!("Creating Nano-9 config at {:?}.", &p);
-                                fs::write(&p, content)?;
+                        if let Err(e) = (|| {
+                            run_cargo(std::process::Command::new("cargo").arg("new").arg(&path))?;
+                            run_cargo(
+                                std::process::Command::new("cargo")
+                                    .current_dir(&path)
+                                    .args(["add", "bevy@0.15"]),
+                            )?;
+                            run_cargo(
+                                std::process::Command::new("cargo").current_dir(&path).args([
+                                    "add",
+                                    "nano9",
+                                    "--git",
+                                    "https://github.com/shanecelis/nano9.git",
+                                    "--branch",
+                                    "dev",
+                                    "--no-default-features",
+                                    "--features",
+                                    feature,
+                                ]),
+                            )?;
+                            Ok::<(), io::Error>(())
+                        })() {
+                            error!("error: Problem running cargo {e}");
+                            return Ok(ExitCode::from(8));
+                        }
+                        // Copy files
+                        let content = include_str!("templates/Nano9.toml");
+                        let mut p = path.to_path_buf();
+                        p.push("assets");
+                        fs::create_dir_all(&p)?;
+                        p.push("Nano9.toml");
+                        info!("Creating Nano-9 config at {:?}.", &p);
+                        fs::write(&p, content)?;
 
-                                if lang == Language::LuaRust {
-                                    let _ = p.pop();
-                                    p.push("main.lua");
-                                    info!("Creating main Lua code at {:?}.", &p);
-                                    fs::write(&p, HELLO_WORLD)?;
+                        if lang == Language::LuaRust {
+                            let _ = p.pop();
+                            p.push("main.lua");
+                            info!("Creating main Lua code at {:?}.", &p);
+                            fs::write(&p, HELLO_WORLD)?;
 
-                                    let content = include_str!("templates/main-lua-rust.rs.txt");
-                                    let _ = p.pop();
-                                    let _ = p.pop();
-                                    p.push("src/main.rs");
-                                    info!("Creating main Rust code at {:?}.", &p);
-                                    fs::write(&p, content)?;
-                                } else {
-                                    let content = include_str!("templates/main-rust.rs.txt");
-                                    let _ = p.pop();
-                                    let _ = p.pop();
-                                    p.push("src/main.rs");
-                                    info!("Creating main Rust code at {:?}.", &p);
-                                    fs::write(&p, content)?;
-                                }
-                            }
-                            Err(e) => {
-                                error!("error: Problem running cargo {e}");
-                                return Ok(ExitCode::from(8));
-                            }
+                            let content = include_str!("templates/main-lua-rust.rs.txt");
+                            let _ = p.pop();
+                            let _ = p.pop();
+                            p.push("src/main.rs");
+                            info!("Creating main Rust code at {:?}.", &p);
+                            fs::write(&p, content)?;
+                        } else {
+                            let content = include_str!("templates/main-rust.rs.txt");
+                            let _ = p.pop();
+                            let _ = p.pop();
+                            p.push("src/main.rs");
+                            info!("Creating main Rust code at {:?}.", &p);
+                            fs::write(&p, content)?;
                         }
                         let mut p = path.to_path_buf();
                         p.push("assets");
@@ -375,6 +386,15 @@ fn new(cli: Cli) -> io::Result<ExitCode> {
             }
         }
         _ => unreachable!(),
+    }
+}
+
+fn run_cargo(cmd: &mut std::process::Command) -> io::Result<()> {
+    let status = cmd.status()?;
+    if status.success() {
+        Ok(())
+    } else {
+        Err(io::Error::other(format!("cargo failed with {status}")))
     }
 }
 
