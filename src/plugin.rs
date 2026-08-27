@@ -18,8 +18,12 @@ use bevy_mod_scripting::{
         handler::event_handler,
         script::{ContextPolicy, ScriptContexts},
     },
-    lua::LuaScriptingPlugin,
     prelude::ScriptAttachment,
+};
+#[cfg(feature = "scripting")]
+use bevy_mod_scripting_luars::{
+    LuarsContext, LuarsScriptingPlugin, into_bms_error,
+    luars::{self, IntoLua, LuaApi},
 };
 
 use crate::{
@@ -184,7 +188,9 @@ impl Nano9Plugin {
                 // decorations: false,
                 // resolution: resolution.with_scale_factor_override(1.0),
                 resolution,
-                visible: false,
+                visible: cfg!(target_arch = "wasm32"),
+                #[cfg(target_arch = "wasm32")]
+                canvas: Some("#nano9-canvas".into()),
                 ..default()
             }),
             ..default()
@@ -245,24 +251,30 @@ fn add_logging(app: &mut App) {
 #[cfg(feature = "scripting")]
 fn context_initializer(
     _script_attachment: &ScriptAttachment,
-    context: &mut bevy_mod_scripting::lua::LuaContext,
+    context: &mut LuarsContext,
 ) -> Result<(), InteropError> {
-    use bevy_mod_scripting::lua::IntoInteropError;
+    let eval = context
+        .lua
+        .global_state_mut()
+        .create_closure(|state| {
+            let expr: String = state.get_arg_as(1)?.unwrap_or_default();
+            let src = format!("tostring({expr})");
+            match <luars::LuaState as LuaApi>::eval::<String>(state, &src) {
+                Ok(s) => s.into_lua(state).map_err(|m| state.error(m)),
+                Err(e) => Err(e),
+            }
+        })
+        .map_err(|e| into_bms_error(&mut context.lua, e))?;
     context
-        .globals()
-        .set(
-            "_eval_string",
-            context
-                .create_function(|ctx, arg: String| {
-                    ctx.load(format!("tostring({arg})")).eval::<String>()
-                })
-                .map_err(IntoInteropError::to_bms_error)?,
-        )
-        .map_err(IntoInteropError::to_bms_error)?;
+        .lua
+        .set_global("_eval_string", eval)
+        .map_err(|e| into_bms_error(&mut context.lua, e))?;
     context
+        .lua
         .load(include_str!("builtin.lua"))
+        .set_name("builtin.lua")
         .exec()
-        .expect("Problem in builtin.lua");
+        .map_err(|e| into_bms_error(&mut context.lua, e))?;
     Ok(())
 }
 
@@ -307,10 +319,10 @@ impl Plugin for Nano9Plugin {
         // }
         #[cfg(feature = "scripting")]
         {
-            app.insert_resource(ScriptContexts::<LuaScriptingPlugin>::new(
+            app.insert_resource(ScriptContexts::<LuarsScriptingPlugin>::new(
                 ContextPolicy::shared(),
             ));
-            let mut lua_scripting_plugin = LuaScriptingPlugin::default();
+            let mut lua_scripting_plugin = LuarsScriptingPlugin::default();
             lua_scripting_plugin
                 .scripting_plugin
                 .add_context_initializer(context_initializer);
@@ -369,7 +381,7 @@ impl Plugin for Nano9Plugin {
                 },
                 ..Default::default()
             };
-            app.add_plugins(BMSPlugin.set(globals_plugin).set(lua_scripting_plugin));
+            app.add_plugins((BMSPlugin.set(globals_plugin), lua_scripting_plugin));
         }
         // let resolution = settings.canvas_size.as_vec2() * settings.pixel_scale;
         if app.is_plugin_added::<bevy::winit::WinitPlugin>() {
@@ -398,17 +410,13 @@ impl Plugin for Nano9Plugin {
                 fill_input,
                 (send(call::Init), schedule::run_schedule(schedule::Init))
                     .run_if(init_when::<ScriptAsset>()),
-                // lua_event_handler::<call::Init, LuaScriptingPlugin>,
                 lua_event_handler::<call::Init>,
                 (send(call::Update), schedule::run_schedule(schedule::Update))
                     .run_if(in_state(RunState::Run)),
-                // lua_event_handler::<call::Update, LuaScriptingPlugin>,
                 lua_event_handler::<call::Update>,
-                // lua_event_handler::<call::Eval, LuaScriptingPlugin>,
                 lua_event_handler::<call::Eval>,
                 (send(call::Draw), schedule::run_schedule(schedule::Draw))
                     .run_if(in_state(RunState::Run)),
-                // lua_event_handler::<call::Draw, LuaScriptingPlugin>,
                 lua_event_handler::<call::Draw>,
             )
                 .chain(),
@@ -525,12 +533,12 @@ pub fn info_on_asset_event<T: Asset>() -> impl FnMut(MessageReader<AssetEvent<T>
 }
 
 // TODO: This is weird. Why do I _have_ to use this instead of just
-// `event_handler::<L, LuaScriptingPlugin>`?
+// `event_handler::<L, LuarsScriptingPlugin>`?
 #[cfg(feature = "scripting")]
 fn lua_event_handler<L: IntoCallbackLabel>(
     world: &mut World,
     state: &mut SystemState<Local<MessageCursor<ScriptCallbackEvent>>>,
 ) -> Result<(), BevyError> {
-    let _ = event_handler::<L, LuaScriptingPlugin>(world, state)?;
+    let _ = event_handler::<L, LuarsScriptingPlugin>(world, state)?;
     Ok(())
 }

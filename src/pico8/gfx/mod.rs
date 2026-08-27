@@ -167,14 +167,7 @@ pub(crate) fn compute_image(
                 trace!("updating image for gfx {}", gfx_id);
                 if let Some(data) = &mut image.data {
                     if let Err(e) = gfx.try_write_bytes(data, |i, pixel_index, bytes| {
-                        write_gfx_pixel(
-                            gfx,
-                            gfx_material,
-                            &palette_data,
-                            i,
-                            pixel_index,
-                            bytes,
-                        )
+                        write_gfx_pixel(gfx, gfx_material, &palette_data, i, pixel_index, bytes)
                     }) {
                         warn!("Unable to write color to handle {:?}: {e}", &handle);
                     } else {

@@ -1,17 +1,16 @@
-use crate::{
-    DropPolicy, N9Entity,
-    pico8::{Clearable, Error},
-};
+use crate::pico8::{Clearable, Error};
 use bevy::prelude::*;
 
 #[derive(Debug, Clone, Reflect)]
 pub enum MeshHandle {
     Mesh(Handle<Mesh>),
     Gltf(Handle<bevy::gltf::Gltf>),
+    #[cfg(feature = "vox")]
     Vox(Handle<bevy_vox_scene::VoxelModel>),
 }
 
 pub(crate) fn plugin(app: &mut App) {
+    #[cfg(feature = "vox")]
     app.add_plugins(bevy_vox_scene::VoxScenePlugin::default());
 
     #[cfg(feature = "scripting")]
@@ -57,20 +56,16 @@ impl super::Pico8<'_, '_> {
                         };
                         gltf.scenes[0].clone()
                     };
-                    // let material = {
-                    //     let mut materials = world.resource_mut::<Assets<StandardMaterial>>();
-                    //     materials.add(Color::srgb(0.8, 0.7, 0.6))
-                    // };
                     world.entity_mut(id).insert((
                         WorldAssetRoot(scene),
                         clearable,
-                        // MeshMaterial3d(material),
                         Transform::from_translation(pos).with_scale(scale),
                     ));
                 });
                 Ok(id)
             }
-            _ => todo!(),
+            #[cfg(feature = "vox")]
+            MeshHandle::Vox(_) => todo!(),
         }
     }
 }
@@ -78,7 +73,7 @@ impl super::Pico8<'_, '_> {
 #[cfg(feature = "scripting")]
 mod lua {
     use super::*;
-    use crate::pico8::lua::with_pico8;
+    use crate::{DropPolicy, N9Entity, pico8::lua::with_pico8};
 
     use bevy_mod_scripting::bindings::function::{
         namespace::{GlobalNamespace, NamespaceBuilder},

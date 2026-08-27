@@ -1,4 +1,6 @@
 use crate::{Nano9Plugin, headless};
+#[cfg(target_arch = "wasm32")]
+use bevy::asset::AssetMetaCheck;
 use bevy::{
     app::{PluginGroup, PluginGroupBuilder, ScheduleRunnerPlugin},
     audio::{AudioPlugin, Volume},
@@ -32,31 +34,34 @@ impl PluginGroup for Nano9Plugins {
         //     config: self.config,
         //     config_path: self.config_path,
         // };
-        let group = group.add_group(
-            DefaultPlugins
-                // .set(AssetPlugin {
-                //     mode: AssetMode::Processed,
-                //     ..default()
-                // })
-                // Preserve crisp pixel art by default.
-                //
-                // TODO: I don't necessarily want to do this because it's a
-                // global setting. But currently the images that I use with
-                // bevy_ecs_tilemap do not seem to be using nearest, so this is
-                // the fix for now.
-                .set(ImagePlugin::default_nearest())
-                .set(AudioPlugin {
-                    global_volume: GlobalVolume {
-                        volume: Volume::Linear(0.4),
-                    },
-                    ..default()
-                })
-                .set(WindowPlugin {
-                    primary_window: None,
-                    exit_condition: ExitCondition::OnPrimaryClosed,
-                    ..default()
-                }),
-        );
+        #[allow(unused_mut)]
+        let mut default_plugins = DefaultPlugins
+            // Preserve crisp pixel art by default.
+            //
+            // TODO: I don't necessarily want to do this because it's a
+            // global setting. But currently the images that I use with
+            // bevy_ecs_tilemap do not seem to be using nearest, so this is
+            // the fix for now.
+            .set(ImagePlugin::default_nearest())
+            .set(AudioPlugin {
+                global_volume: GlobalVolume {
+                    volume: Volume::Linear(0.4),
+                },
+                ..default()
+            })
+            .set(WindowPlugin {
+                primary_window: None,
+                exit_condition: ExitCondition::OnPrimaryClosed,
+                ..default()
+            });
+        #[cfg(target_arch = "wasm32")]
+        {
+            default_plugins = default_plugins.set(AssetPlugin {
+                meta_check: AssetMetaCheck::Never,
+                ..default()
+            });
+        }
+        let group = group.add_group(default_plugins);
 
         group.add(nano9_plugin)
     }

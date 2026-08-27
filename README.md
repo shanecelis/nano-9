@@ -429,9 +429,17 @@ like [Depicofier](https://github.com/Enichan/Depicofier) but for Rust.
 ### Can I use this to port my game to a console?
 
 Hopefully, yes. Whatever consoles Bevy supports, Nano-9 should support too.
-(However, bevy_mod_scripting currently [does not support
-WASM](https://github.com/makspll/bevy_mod_scripting/issues/166) builds with
-Lua.)
+Lua on native and wasm uses [luars](https://github.com/CppCXY/lua-rs) (Lua 5.5)
+as a [bevy_mod_scripting](https://github.com/makspll/bevy_mod_scripting) plugin
+crate, so Pico-8 carts can target the browser:
+
+``` sh
+trunk serve --config web/Trunk.toml
+```
+
+That example (`examples/web_cart.rs`) needs a 16MB wasm stack and
+`AssetMetaCheck::Never` (both set in this repo). Audio on wasm is not soaked
+yet; the `web` feature mutes by default.
 
 Some game developers have the technical wherewithal to rebuild their game in
 another engine like the celebrated story of 

@@ -1,0 +1,14 @@
+# Browser build for src/bin/web_cart.rs.
+#
+#   trunk serve --config web/Trunk.toml
+#
+# wasm32 rustflags (stack size + getrandom) live in .cargo/config.toml.
+# AssetMetaCheck::Never is set for wasm in Nano9Plugins.
+
+[build]
+target = "index.html"
+dist = "dist"
+
+[serve]
+port = 8080
+open = false

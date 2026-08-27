@@ -1632,7 +1632,6 @@ dependencies = [
  "bevy_mod_scripting_derive",
  "bevy_mod_scripting_display",
  "bevy_mod_scripting_functions",
- "bevy_mod_scripting_lua",
  "bevy_mod_scripting_script",
 ]
 
@@ -1755,7 +1754,6 @@ dependencies = [
  "bevy_mod_scripting_core",
  "bevy_mod_scripting_derive",
  "bevy_mod_scripting_display",
- "bevy_mod_scripting_lua",
  "bevy_mod_scripting_script",
  "bevy_mod_scripting_world",
  "bevy_platform 0.19.1",
@@ -1765,9 +1763,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "bevy_mod_scripting_lua"
-version = "0.20.0"
-source = "git+https://github.com/makspll/bevy_mod_scripting.git?branch=feat%2Fbevy-0.19#24f3eb68337676cd80b40f453bdd0caad8163dcf"
+name = "bevy_mod_scripting_luars"
+version = "0.1.0"
 dependencies = [
  "bevy_app 0.19.1",
  "bevy_asset",
@@ -1781,8 +1778,9 @@ dependencies = [
  "bevy_mod_scripting_script",
  "bevy_mod_scripting_world",
  "bevy_platform 0.19.1",
- "mlua",
- "profiling",
+ "getrandom 0.3.4",
+ "js-sys",
+ "luars",
 ]
 
 [[package]]
@@ -2870,6 +2868,19 @@ dependencies = [
  "cfg-if",
  "cpufeatures",
  "rand_core",
+]
+
+[[package]]
+name = "chrono"
+version = "0.4.45"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1aa79e62e7697b8e29b513a68abacf485adcd1fe8284a4316c5ae868e6633327"
+dependencies = [
+ "iana-time-zone",
+ "js-sys",
+ "num-traits",
+ "wasm-bindgen",
+ "windows-link",
 ]
 
 [[package]]
@@ -4201,9 +4212,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "899def5c37c4fd7b2664648c28120ecec138e4d395b459e5ca34f9cce2dd77fd"
 dependencies = [
  "cfg-if",
+ "js-sys",
  "libc",
  "r-efi 5.3.0",
  "wasip2",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -4585,6 +4598,30 @@ name = "i_tree"
 version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4804bdc1dc124eb7e1aa9e144ecc04096bcf787a10a15fa44af682b51f0f6cce"
+
+[[package]]
+name = "iana-time-zone"
+version = "0.1.65"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e31bc9ad994ba00e440a8aa5c9ef0ec67d5cb5e5cb0cc7f8b744a35b389cc470"
+dependencies = [
+ "android_system_properties",
+ "core-foundation-sys",
+ "iana-time-zone-haiku",
+ "js-sys",
+ "log",
+ "wasm-bindgen",
+ "windows-core",
+]
+
+[[package]]
+name = "iana-time-zone-haiku"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f31827a206f56af32e590ba56d5d2d085f558508192593743f16b2306495269f"
+dependencies = [
+ "cc",
+]
 
 [[package]]
 name = "icu_collections"
@@ -5188,22 +5225,27 @@ dependencies = [
 ]
 
 [[package]]
-name = "lua-src"
-version = "550.0.0"
+name = "luars"
+version = "0.26.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e836dc8ae16806c9bdcf42003a88da27d163433e3f9684c52f0301258004a4fb"
+checksum = "ef79c3ef11625457e3ad402b51ab60d4c072758dbecc011f5a83f0d46b9ec203"
 dependencies = [
- "cc",
+ "ahash",
+ "chrono",
+ "itoa",
+ "js-sys",
+ "luars-derive",
 ]
 
 [[package]]
-name = "luajit-src"
-version = "210.6.6+707c12b"
+name = "luars-derive"
+version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a86cc925d4053d0526ae7f5bc765dbd0d7a5d1a63d43974f4966cb349ca63295"
+checksum = "fda62714463ad3de14efad1c2c985e4b109ee3a4aac10999f02844f5b1ea7441"
 dependencies = [
- "cc",
- "which",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.118",
 ]
 
 [[package]]
@@ -5316,52 +5358,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "mlua"
-version = "0.11.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ccd36acfa49ce6ee56d1307a061dd302c564eee757e6e4cd67eb4f7204846fab"
-dependencies = [
- "bstr",
- "either",
- "libc",
- "mlua-sys",
- "mlua_derive",
- "num-traits",
- "parking_lot",
- "rustc-hash 2.1.3",
- "rustversion",
-]
-
-[[package]]
-name = "mlua-sys"
-version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0f1c3a7fc7580227ece249fd90aa2fa3b39eb2b49d3aec5e103b3e85f2c3dfc8"
-dependencies = [
- "cc",
- "cfg-if",
- "libc",
- "lua-src",
- "luajit-src",
- "pkg-config",
-]
-
-[[package]]
-name = "mlua_derive"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "465bddde514c4eb3b50b543250e97c1d4b284fa3ef7dc0ba2992c77545dbceb2"
-dependencies = [
- "itertools 0.14.0",
- "once_cell",
- "proc-macro-error2",
- "proc-macro2",
- "quote",
- "regex",
- "syn 2.0.118",
-]
-
-[[package]]
 name = "moxcms"
 version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5434,6 +5430,7 @@ dependencies = [
  "bevy_minibuffer_inspector",
  "bevy_mod_debugdump",
  "bevy_mod_scripting",
+ "bevy_mod_scripting_luars",
  "bevy_prng",
  "bevy_rand",
  "bevy_vox_scene",
@@ -5449,6 +5446,7 @@ dependencies = [
  "env_logger 0.11.11",
  "fixed",
  "futures-lite",
+ "getrandom 0.4.3",
  "keyseq",
  "log",
  "mashmap",
@@ -8494,15 +8492,6 @@ dependencies = [
  "raw-window-handle",
  "serde",
  "web-sys",
-]
-
-[[package]]
-name = "which"
-version = "8.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "48d7cd18d4acb58fb3cdfe9ea54e6cd96a4e7d4cc45c56338b236e82dad47248"
-dependencies = [
- "libc",
 ]
 
 [[package]]

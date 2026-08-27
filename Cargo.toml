@@ -1,3 +1,7 @@
+[workspace]
+members = [".", "crates/bevy_mod_scripting_luars"]
+resolver = "2"
+
 [package]
 name = "nano9"
 description = "A Pico-8 compatibility layer for Bevy"
@@ -23,8 +27,9 @@ default-run = "n9"
 
 [dependencies]
 bevy = { version = "0.19.1", features = [ "bevy_dev_tools", "asset_processor", "serialize", "audio" ] }
-# TODO: Make this a Cargo patch.
-bevy_mod_scripting = { git = "https://github.com/makspll/bevy_mod_scripting.git", branch = "feat/bevy-0.19", features = ["lua54", "core_functions"], default-features = false, optional = true }
+# BMS without lua54/mlua: Lua is provided by bevy_mod_scripting_luars (luars 0.26.2).
+bevy_mod_scripting = { git = "https://github.com/makspll/bevy_mod_scripting.git", branch = "feat/bevy-0.19", features = ["core_functions"], default-features = false, optional = true }
+bevy_mod_scripting_luars = { path = "crates/bevy_mod_scripting_luars", optional = true }
 bytemuck = "1.16.3"
 thiserror = "1.0.63"
 bevy_minibuffer = { version = "0.7", optional = true }
@@ -58,23 +63,27 @@ log = { version = "0.4.27", optional = true }
 env_logger = { version = "0.11.8", optional = true }
 merge2 = "0.3.2"
 bevy_framepace = { version = "0.21", optional = true }
-bevy_vox_scene = "0.22"
+bevy_vox_scene = { version = "0.22", optional = true }
 bevy_mod_debugdump = { version = "0.15", optional = true }
 num-traits = "0.2.19"
 bobtail = { version = "0.3.0", features = [ "omit-token" ] }
 
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = { version = "0.4", features = ["wasm_js"] }
+
 [features]
 default = [ "cli", "watcher", "web-asset" ]
 cli = [ "lua-lib", "dep:clap", "dep:cmd_lib", "gameboy", "dep:log", "dep:env_logger", "dep:cmd_lib" ]
-lua-lib = [ "rust-lib", "pico8-to-lua", "scripting", "rand", "framepace" ]
-rust-lib = [ "negate-y", "fixed-point", "pixel-snap", "rand", "framepace" ]
+lua-lib = [ "rust-lib", "pico8-to-lua", "scripting", "rand", "framepace", "vox" ]
+lua-lib-wasm = [ "negate-y", "fixed-point", "pixel-snap", "rand", "pico8-to-lua", "scripting", "mute" ]
+rust-lib = [ "negate-y", "fixed-point", "pixel-snap", "rand", "framepace", "vox" ]
 negate-y = []
 inspector = [ "minibuffer", "dep:bevy_minibuffer_inspector", "dep:bevy_egui" ]
 minibuffer = [ "dep:bevy_minibuffer", "dep:keyseq" ]
 debugdump = [ "dep:bevy_mod_debugdump" ]
 pico8-to-lua = [ "dep:pico8-to-lua" ]
 fixed-point = [ "dep:fixed" ]
-scripting = [ "dep:bevy_mod_scripting" ]
+scripting = [ "dep:bevy_mod_scripting", "dep:bevy_mod_scripting_luars" ]
 web-asset = [ "bevy/http", "bevy/https" ]
 watcher = [ "bevy/file_watcher" ]
 framepace = [ "dep:bevy_framepace" ]
@@ -84,6 +93,7 @@ gameboy = []
 tiled = [ "dep:tiled" ]
 mute = []
 rand = [ "dep:rand", "dep:bevy_rand", "dep:bevy_prng" ]
+vox = [ "dep:bevy_vox_scene" ]
 # Features after this line are not supported yet.
 # -----------------------------------------------
 # level = [ "dep:bevy_ecs_ldtk", "dep:ldtk_rust", "dep:serde_json"]
@@ -91,7 +101,7 @@ rand = [ "dep:rand", "dep:bevy_rand", "dep:bevy_prng" ]
 user_properties = [ "bevy_ecs_tiled/user_properties" ]
 # level = [ "dep:bevy_ecs_tiled", "dep:serde_json" ]
 level = [ "dep:bevy_ecs_tiled", "dep:serde_json", "dep:futures-lite", "tiled", "scripting" ]
-web = []
+web = [ "lua-lib-wasm" ]
 dev-tools = []
 
 
@@ -99,6 +109,8 @@ dev-tools = []
 bevy = "0.19"
 version-sync = "0.9.5"
 png = "0.17.16"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 criterion = "0.5"
 
 [[test]]
@@ -108,6 +120,13 @@ harness = false
 [[bench]]
 name = "raster"
 harness = false
+
+[[bin]]
+name = "web_cart"
+test = false
+bench = false
+required-features = ["web"]
+path = "src/bin/web_cart.rs"
 
 [[bin]]
 name = "n9"

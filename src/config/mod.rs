@@ -658,7 +658,9 @@ impl Config {
             resize_constraints,
             decorations,
             resolution,
-            visible: false,
+            visible: cfg!(target_arch = "wasm32"),
+            #[cfg(target_arch = "wasm32")]
+            canvas: Some("#nano9-canvas".into()),
             ..default()
         }
     }

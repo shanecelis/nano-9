@@ -8,7 +8,6 @@ use crate::{
 use bevy_mod_scripting::bindings::function::{
     namespace::NamespaceBuilder, script_function::FunctionCallContext,
 };
-use bevy_mod_scripting::lua::mlua::{self, FromLua, Lua, UserData, Value};
 
 #[cfg(feature = "scripting")]
 use bevy_mod_scripting::{
@@ -24,17 +23,6 @@ use bevy_mod_scripting::{
 pub enum DropPolicy {
     Nothing,
     Despawn,
-}
-
-impl UserData for DropPolicy {}
-
-impl FromLua for DropPolicy {
-    fn from_lua(value: Value, _: &Lua) -> mlua::Result<Self> {
-        match value {
-            Value::UserData(ud) => Ok(*ud.borrow::<Self>()?),
-            _ => unreachable!(),
-        }
-    }
 }
 
 impl Drop for N9Entity {

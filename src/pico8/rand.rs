@@ -1,9 +1,8 @@
 use crate::pico8::Error;
 use ::rand::{Rng, RngExt};
 use bevy::{ecs::system::SystemParam, prelude::*};
-use bevy_mod_scripting::bindings::InteropError;
 #[cfg(feature = "scripting")]
-use bevy_mod_scripting::bindings::ScriptValue;
+use bevy_mod_scripting::bindings::{InteropError, ScriptValue};
 use bevy_prng::WyRand;
 use bevy_rand::prelude::{EntropyPlugin, RngSeed, SeedSource};
 

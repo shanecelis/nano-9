@@ -9,6 +9,15 @@ n9 = "run"
 test-golden = "test --test golden -- --nocapture --test-threads=1"
 bench-raster = "bench --bench raster --"
 
+# Bevy + luars on wasm: getrandom 0.3 needs an explicit JS backend, and BMS
+# Lua pcall + host functions overflow the default ~1MB wasm stack.
+[target.wasm32-unknown-unknown]
+rustflags = [
+    "--cfg", "getrandom_backend=\"wasm_js\"",
+    "-C", "link-arg=-zstack-size=16777216",
+]
+
+
 # [source.crates-io]
 # replace-with = "vendored-sources"
 
